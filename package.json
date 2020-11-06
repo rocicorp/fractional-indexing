@@ -1,0 +1,26 @@
+{
+  "name": "fractional-indexing",
+  "version": "1.0.0",
+  "description": "Provides functions for generating ordering strings",
+  "module": "src/index.mjs",
+  "type": "module",
+  "engines": {
+    "node": ">=13"
+  },
+  "scripts": {
+    "format": "prettier *.json src/ --write",
+    "test": "tsc && node src/test.js"
+  },
+  "keywords": [
+    "fractional",
+    "indexing",
+    "ordering",
+    "order"
+  ],
+  "author": "arv@rocicorp.dev",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "prettier": "^2.1.2",
+    "typescript": "^4.0.5"
+  }
+}

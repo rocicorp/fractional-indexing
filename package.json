@@ -8,9 +8,9 @@
     "node": ">=13"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "rm -f src/*.d.ts && tsc && prettier src/*.d.ts --write",
     "format": "prettier *.json src/ --write",
-    "prepare": "npm run build",
+    "prepare": "npm run build && npm run format",
     "test": "tsc && node src/test.js"
   },
   "keywords": [

@@ -8,7 +8,9 @@
     "node": ">=13"
   },
   "scripts": {
+    "build": "tsc",
     "format": "prettier *.json src/ --write",
+    "prepare": "npm run build",
     "test": "tsc && node src/test.js"
   },
   "keywords": [

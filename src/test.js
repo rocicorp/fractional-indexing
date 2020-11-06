@@ -1,4 +1,4 @@
-import {generateKeyBetween} from "./index.js";
+import { generateKeyBetween } from "./index.js";
 
 /**
  * @param {string | null} a
@@ -39,7 +39,7 @@ test(null, "b999", "b99");
 test(
   null,
   "A00000000000000000000000000",
-  "invalid order key: A00000000000000000000000000",
+  "invalid order key: A00000000000000000000000000"
 );
 test(null, "A000000000000000000000000001", "A000000000000000000000000000V");
 test("zzzzzzzzzzzzzzzzzzzzzzzzzzy", null, "zzzzzzzzzzzzzzzzzzzzzzzzzzz");

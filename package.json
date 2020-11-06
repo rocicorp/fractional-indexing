@@ -2,7 +2,7 @@
   "name": "fractional-indexing",
   "version": "1.1.0",
   "description": "Provides functions for generating ordering strings",
-  "module": "src/index.mjs",
+  "module": "src/index.js",
   "type": "module",
   "engines": {
     "node": ">=13"

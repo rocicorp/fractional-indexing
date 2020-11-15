@@ -1,4 +1,4 @@
-import { generateKeyBetween } from "./index.js";
+import { generateKeyBetween, generateNKeysBetween } from "./index.js";
 
 /**
  * @param {string | null} a
@@ -14,7 +14,7 @@ function test(a, b, exp) {
     act = exp.message;
   }
 
-  console.assert(exp == act, `${exp} == ${act}`); //"error";
+  console.assert(exp == act, `${exp} == ${act}`);
 }
 
 test(null, null, "a0");
@@ -48,3 +48,33 @@ test("a00", null, "invalid order key: a00");
 test("a00", "a1", "invalid order key: a00");
 test("0", "1", "invalid order key head: 0");
 test("a1", "a0", "a1 >= a0");
+
+/**
+ * @param {string | null} a
+ * @param {string | null} b
+ * @param {number} n
+ * @param {string} exp
+ */
+function testN(a, b, n, exp) {
+  const BASE_10_DIGITS = "0123456789";
+
+  /** @type {string} */
+  let act;
+  try {
+    act = generateNKeysBetween(a, b, n, BASE_10_DIGITS).join(" ");
+  } catch (exp) {
+    act = exp.message;
+  }
+
+  console.assert(exp == act, `${exp} == ${act}`);
+}
+
+testN(null, null, 5, "a0 a1 a2 a3 a4");
+testN("a4", null, 10, "a5 a6 a7 a8 a9 b00 b01 b02 b03 b04");
+testN(null, "a0", 5, "Z5 Z6 Z7 Z8 Z9");
+testN(
+  "a0",
+  "a2",
+  20,
+  "a01 a02 a03 a035 a04 a05 a06 a07 a08 a09 a1 a11 a12 a13 a14 a15 a16 a17 a18 a19"
+);

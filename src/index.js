@@ -260,3 +260,52 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
   }
   return ia + midpoint(fa, null, digits);
 }
+
+/**
+ * same preconditions as generateKeysBetween.
+ * n >= 0.
+ * Returns an array of n distinct keys in sorted order.
+ * If a and b are both null, returns [a0, a1, ...]
+ * If one or the other is null, returns consecutive "integer"
+ * keys.  Otherwise, returns relatively short keys between
+ * a and b.
+ * @param {string | null} a
+ * @param {string | null} b
+ * @param {number} n
+ * @param {string} digits
+ * @return {string[]}
+ */
+export function generateNKeysBetween(a, b, n, digits = BASE_62_DIGITS) {
+  if (n === 0) {
+    return [];
+  }
+  if (n === 1) {
+    return [generateKeyBetween(a, b, digits)];
+  }
+  if (b === null) {
+    let c = generateKeyBetween(a, b, digits);
+    const result = [c];
+    for (let i = 0; i < n - 1; i++) {
+      c = generateKeyBetween(c, b, digits);
+      result.push(c);
+    }
+    return result;
+  }
+  if (a === null) {
+    let c = generateKeyBetween(a, b, digits);
+    const result = [c];
+    for (let i = 0; i < n - 1; i++) {
+      c = generateKeyBetween(a, c, digits);
+      result.push(c);
+    }
+    result.reverse();
+    return result;
+  }
+  const mid = Math.floor(n / 2);
+  const c = generateKeyBetween(a, b, digits);
+  return [
+    ...generateNKeysBetween(a, c, mid, digits),
+    c,
+    ...generateNKeysBetween(c, b, n - mid - 1, digits),
+  ];
+}

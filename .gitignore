@@ -1,2 +1,5 @@
 node_modules/
 .DS_Store
+index.js
+index.d.ts
+src/*.d.ts

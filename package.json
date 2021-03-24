@@ -1,15 +1,13 @@
 {
   "name": "fractional-indexing",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "Provides functions for generating ordering strings",
-  "module": "src/index.js",
-  "main": "src/index.js",
-  "type": "module",
+  "main": "out/index.js",
   "engines": {
     "node": ">=13"
   },
   "scripts": {
-    "build": "rm -f src/*.d.ts && tsc && prettier src/*.d.ts --write",
+    "build": "rm -rf out && tsc && prettier out/* --write",
     "format": "prettier *.json src/ --write",
     "prepare": "npm run build && npm run format",
     "test": "node src/test.js"
@@ -18,9 +16,10 @@
     "fractional",
     "indexing",
     "ordering",
-    "order"
+    "order",
+    "realtime"
   ],
-  "author": "arv@rocicorp.dev",
+  "author": "arv@roci.dev",
   "license": "CC0-1.0",
   "devDependencies": {
     "prettier": "^2.1.2",

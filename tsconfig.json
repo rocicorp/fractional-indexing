@@ -3,11 +3,11 @@
     "allowJs": true,
     "checkJs": true,
     "declaration": true,
-    "emitDeclarationOnly": true,
     "forceConsistentCasingInFileNames": true,
     "module": "es2020",
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2020"
-  }
+  },
+  "include": ["src/index.js"]
 }

@@ -4,11 +4,7 @@
  * @param {string=} digits
  * @return {string}
  */
-export function generateKeyBetween(
-  a: string | null,
-  b: string | null,
-  digits?: string | undefined
-): string;
+export function generateKeyBetween(a: string | null, b: string | null, digits?: string | undefined): string;
 /**
  * same preconditions as generateKeysBetween.
  * n >= 0.
@@ -23,10 +19,5 @@ export function generateKeyBetween(
  * @param {string} digits
  * @return {string[]}
  */
-export function generateNKeysBetween(
-  a: string | null,
-  b: string | null,
-  n: number,
-  digits?: string
-): string[];
+export function generateNKeysBetween(a: string | null, b: string | null, n: number, digits?: string): string[];
 export const BASE_62_DIGITS: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

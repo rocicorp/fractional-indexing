@@ -21,6 +21,14 @@
     "ordering",
     "order"
   ],
+  "homepage": "https://github.com/rocicorp/fractional-indexing#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rocicorp/fractional-indexing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rocicorp/fractional-indexing/issues"
+  },
   "author": "arv@rocicorp.dev",
   "license": "CC0-1.0",
   "devDependencies": {

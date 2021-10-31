@@ -4,7 +4,7 @@
   "description": "Provides functions for generating ordering strings",
   "main": "index.js",
   "engines": {
-    "node": ">=13"
+    "node": ">=12"
   },
   "scripts": {
     "build-cjs": "tsc --module commonjs --outdir .",

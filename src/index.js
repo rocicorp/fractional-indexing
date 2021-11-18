@@ -232,7 +232,7 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
     }
     const res = decrementInteger(ib, digits);
     if (res === null) {
-      throw new Error("cannot decreatement any more");
+      throw new Error("cannot decrement any more");
     }
     return res;
   }

@@ -13,7 +13,7 @@ This should be byte-for-byte compatible with https://github.com/rocicorp/fracdex
 ## Usage
 
 ```js
-import {generateKeyBetween} from "fractional-indexing";
+import { generateKeyBetween } from 'fractional-indexing';
 
 const first = generateKeyBetween(null, null); // "a0"
 
@@ -29,3 +29,12 @@ const zeroth = generateKeyBetween(null, first); // "Zz"
 // Insert in between 2nd and 3rd. Midpoint
 const secondAndHalf = generateKeyBetween(second, third); // "a1V"
 ```
+
+## Other Languages
+
+These should be byte-for-byte compatible.
+
+| Language | Repo                                                 |
+| -------- | ---------------------------------------------------- |
+| Go       | https://github.com/rocicorp/fracdex                  |
+| Python   | https://github.com/httpie/fractional-indexing-python |

@@ -1,15 +1,14 @@
 {
   "name": "fractional-indexing",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Provides functions for generating ordering strings",
-  "main": "index.js",
+  "type": "module",
   "engines": {
-    "node": ">=12"
+    "node": "^14.13.1 || >=16.0.0"
   },
   "scripts": {
-    "build-cjs": "tsc --module commonjs --outdir .",
     "build-dts": "rm -f src/*.d.ts && tsc --emitDeclarationOnly && prettier src/*.d.ts --write",
-    "build": "npm run build-dts && npm run build-cjs",
+    "build": "npm run build-dts",
     "format": "prettier *.json src/ --write",
     "prepare": "npm run build && npm run format",
     "prepack": "npm run prepare",
@@ -32,12 +31,11 @@
   "author": "arv@rocicorp.dev",
   "license": "CC0-1.0",
   "devDependencies": {
-    "prettier": "^2.2.1",
-    "typescript": "^4.2.3"
+    "prettier": "^2.6.0",
+    "typescript": "^4.6.2"
   },
+  "exports": "./src/index.js",
   "files": [
-    "index.js",
-    "index.d.ts",
     "src/index.js",
     "src/index.d.ts"
   ]

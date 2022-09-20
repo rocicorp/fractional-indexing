@@ -8,9 +8,21 @@ Fractional indexing is a technique to create an ordering that can be used for [R
 
 This implementation includes variable-length integers, and the prepend/append optimization described in David's article.
 
-## Usage
+## API
 
-```js
+### `generateKeyBetween`
+
+Generate a single key in between two points.
+
+```ts
+generateKeyBetween(
+  a: string | null | undefined, // start
+  b: string | null | undefined, // end
+  digits?: string | undefined = BASE_62_DIGITS, // optional character encoding
+): string;
+```
+
+```ts
 import { generateKeyBetween } from 'fractional-indexing';
 
 const first = generateKeyBetween(null, null); // "a0"
@@ -24,9 +36,38 @@ const third = generateKeyBetween(second, null); // "a2"
 // Insert before 1st
 const zeroth = generateKeyBetween(null, first); // "Zz"
 
-// Insert in between 2nd and 3rd. Midpoint
+// Insert in between 2nd and 3rd (midpoint)
 const secondAndHalf = generateKeyBetween(second, third); // "a1V"
 ```
+
+### `generateNKeysBetween`
+
+Use this when generating multiple keys at some known position, as it spaces out indexes more evenly and leads to shorter keys.
+
+```ts
+generateNKeysBetween(
+  a: string | null | undefined, // start
+  b: string | null | undefined, // end
+  n: number // number of keys to generate evenly between start and end
+  digits?: string | undefined = BASE_62_DIGITS, // optional character encoding
+): string[];
+```
+
+```ts
+import { generateNKeysBetween } from 'fractional-indexing';
+
+const first = generateNKeysBetween(null, null, 2); // ['a0', 'a1']
+
+// Insert two keys after 2nd
+generateNKeysBetween(first[1], null, 2); // ['a2', 'a3']
+
+// Insert two keys before 1st
+generateNKeysBetween(null, first[0], 2); // ['Zy', 'Zz']
+
+// Insert two keys in between 1st and 2nd (midpoints)
+generateNKeysBetween(second, third, 2); // ['a0G', 'a0V']
+```
+
 
 ## Other Languages
 

@@ -16,12 +16,12 @@ const INTEGER_ZERO = "a0";
 // ascending character code order!
 /**
  * @param {string} a
- * @param {string | null} b
+ * @param {string | null | undefined} b
  * @param {string} digits
  * @returns {string}
  */
 function midpoint(a, b, digits) {
-  if (b !== null && a >= b) {
+  if (b != null && a >= b) {
     throw new Error(a + " >= " + b);
   }
   if (a.slice(-1) === "0" || (b && b.slice(-1) === "0")) {
@@ -41,7 +41,7 @@ function midpoint(a, b, digits) {
   }
   // first digits (or lack of digit) are different
   const digitA = a ? digits.indexOf(a[0]) : 0;
-  const digitB = b !== null ? digits.indexOf(b[0]) : digits.length;
+  const digitB = b != null ? digits.indexOf(b[0]) : digits.length;
   if (digitB - digitA > 1) {
     const midDigit = Math.round(0.5 * (digitA + digitB));
     return digits[midDigit];
@@ -202,23 +202,23 @@ function decrementInteger(x, digits) {
 // digits is a string such as '0123456789' for base 10.  Digits must be in
 // ascending character code order!
 /**
- * @param {string | null} a
- * @param {string | null} b
+ * @param {string | null | undefined} a
+ * @param {string | null | undefined} b
  * @param {string=} digits
  * @return {string}
  */
 export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
-  if (a !== null) {
+  if (a != null) {
     validateOrderKey(a);
   }
-  if (b !== null) {
+  if (b != null) {
     validateOrderKey(b);
   }
-  if (a !== null && b !== null && a >= b) {
+  if (a != null && b != null && a >= b) {
     throw new Error(a + " >= " + b);
   }
-  if (a === null) {
-    if (b === null) {
+  if (a == null) {
+    if (b == null) {
       return INTEGER_ZERO;
     }
 
@@ -231,17 +231,17 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
       return ib;
     }
     const res = decrementInteger(ib, digits);
-    if (res === null) {
+    if (res == null) {
       throw new Error("cannot decrement any more");
     }
     return res;
   }
 
-  if (b === null) {
+  if (b == null) {
     const ia = getIntegerPart(a);
     const fa = a.slice(ia.length);
     const i = incrementInteger(ia, digits);
-    return i === null ? ia + midpoint(fa, null, digits) : i;
+    return i == null ? ia + midpoint(fa, null, digits) : i;
   }
 
   const ia = getIntegerPart(a);
@@ -252,7 +252,7 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
     return ia + midpoint(fa, fb, digits);
   }
   const i = incrementInteger(ia, digits);
-  if (i === null) {
+  if (i == null) {
     throw new Error("cannot increment any more");
   }
   if (i < b) {
@@ -269,8 +269,8 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
  * If one or the other is null, returns consecutive "integer"
  * keys.  Otherwise, returns relatively short keys between
  * a and b.
- * @param {string | null} a
- * @param {string | null} b
+ * @param {string | null | undefined} a
+ * @param {string | null | undefined} b
  * @param {number} n
  * @param {string} digits
  * @return {string[]}
@@ -282,7 +282,7 @@ export function generateNKeysBetween(a, b, n, digits = BASE_62_DIGITS) {
   if (n === 1) {
     return [generateKeyBetween(a, b, digits)];
   }
-  if (b === null) {
+  if (b == null) {
     let c = generateKeyBetween(a, b, digits);
     const result = [c];
     for (let i = 0; i < n - 1; i++) {
@@ -291,7 +291,7 @@ export function generateNKeysBetween(a, b, n, digits = BASE_62_DIGITS) {
     }
     return result;
   }
-  if (a === null) {
+  if (a == null) {
     let c = generateKeyBetween(a, b, digits);
     const result = [c];
     for (let i = 0; i < n - 1; i++) {

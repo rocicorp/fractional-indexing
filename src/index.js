@@ -5,10 +5,6 @@
 export const BASE_62_DIGITS =
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-const SMALLEST_INTEGER = "A00000000000000000000000000";
-
-const INTEGER_ZERO = "a0";
-
 // `a` may be empty string, `b` is null or non-empty string.
 // `a < b` lexicographically if `b` is non-null.
 // no trailing zeros allowed.
@@ -21,10 +17,11 @@ const INTEGER_ZERO = "a0";
  * @returns {string}
  */
 function midpoint(a, b, digits) {
+  const zero = digits[0];
   if (b != null && a >= b) {
     throw new Error(a + " >= " + b);
   }
-  if (a.slice(-1) === "0" || (b && b.slice(-1) === "0")) {
+  if (a.slice(-1) === zero || (b && b.slice(-1) === zero)) {
     throw new Error("trailing zero");
   }
   if (b) {
@@ -32,7 +29,7 @@ function midpoint(a, b, digits) {
     // go.  note that we don't need to pad `b`, because it can't
     // end before `a` while traversing the common prefix.
     let n = 0;
-    while ((a[n] || "0") === b[n]) {
+    while ((a[n] || zero) === b[n]) {
       n++;
     }
     if (n > 0) {
@@ -102,11 +99,12 @@ function getIntegerPart(key) {
 
 /**
  * @param {string} key
+ * @param {string} digits
  * @return {void}
  */
 
-function validateOrderKey(key) {
-  if (key === SMALLEST_INTEGER) {
+function validateOrderKey(key, digits) {
+  if (key === "A" + digits[0].repeat(26)) {
     throw new Error("invalid order key: " + key);
   }
   // getIntegerPart will throw if the first character is bad,
@@ -114,7 +112,7 @@ function validateOrderKey(key) {
   // even if we didn't need the result
   const i = getIntegerPart(key);
   const f = key.slice(i.length);
-  if (f.slice(-1) === "0") {
+  if (f.slice(-1) === digits[0]) {
     throw new Error("invalid order key: " + key);
   }
 }
@@ -132,7 +130,7 @@ function incrementInteger(x, digits) {
   for (let i = digs.length - 1; carry && i >= 0; i--) {
     const d = digits.indexOf(digs[i]) + 1;
     if (d === digits.length) {
-      digs[i] = "0";
+      digs[i] = digits[0];
     } else {
       digs[i] = digits[d];
       carry = false;
@@ -140,14 +138,14 @@ function incrementInteger(x, digits) {
   }
   if (carry) {
     if (head === "Z") {
-      return "a0";
+      return "a" + digits[0];
     }
     if (head === "z") {
       return null;
     }
     const h = String.fromCharCode(head.charCodeAt(0) + 1);
     if (h > "a") {
-      digs.push("0");
+      digs.push(digits[0]);
     } else {
       digs.pop();
     }
@@ -209,22 +207,22 @@ function decrementInteger(x, digits) {
  */
 export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
   if (a != null) {
-    validateOrderKey(a);
+    validateOrderKey(a, digits);
   }
   if (b != null) {
-    validateOrderKey(b);
+    validateOrderKey(b, digits);
   }
   if (a != null && b != null && a >= b) {
     throw new Error(a + " >= " + b);
   }
   if (a == null) {
     if (b == null) {
-      return INTEGER_ZERO;
+      return "a" + digits[0];
     }
 
     const ib = getIntegerPart(b);
     const fb = b.slice(ib.length);
-    if (ib === SMALLEST_INTEGER) {
+    if (ib === "A" + digits[0].repeat(26)) {
       return ib + midpoint("", fb, digits);
     }
     if (ib < b) {

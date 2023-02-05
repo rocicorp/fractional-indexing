@@ -78,3 +78,45 @@ testN(
   20,
   "a01 a02 a03 a035 a04 a05 a06 a07 a08 a09 a1 a11 a12 a13 a14 a15 a16 a17 a18 a19"
 );
+
+/**
+ * @param {string | null} a
+ * @param {string | null} b
+ * @param {string} exp
+ */
+function testBase95(a, b, exp) {
+  const BASE_95_DIGITS =
+    " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+  /** @type {string} */
+  let act;
+  try {
+    act = generateKeyBetween(a, b, BASE_95_DIGITS);
+  } catch (exp) {
+    act = exp.message;
+  }
+
+  console.assert(exp == act, `${exp} == ${act}`);
+}
+
+testBase95("a00", "a01", "a00P");
+testBase95("a0/", "a00", "a0/P");
+testBase95(null, null, "a ");
+testBase95("a ", null, "a!");
+testBase95(null, "a ", "Z~");
+testBase95("a0 ", "a0!", "invalid order key: a0 ");
+testBase95(
+  null,
+  "A                          0",
+  "A                          ("
+);
+testBase95("a~", null, "b  ");
+testBase95("Z~", null, "a ");
+testBase95("b   ", null, "invalid order key: b   ");
+testBase95("a0", "a0V", "a0;");
+testBase95("a  1", "a  2", "a  1P");
+testBase95(
+  null,
+  "A                          ",
+  "invalid order key: A                          "
+);

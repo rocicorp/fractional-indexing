@@ -73,7 +73,8 @@ generateNKeysBetween(second, third, 2); // ['a0G', 'a0V']
 
 These should be byte-for-byte compatible.
 
-| Language | Repo                                                 |
-| -------- | ---------------------------------------------------- |
-| Go       | https://github.com/rocicorp/fracdex                  |
-| Python   | https://github.com/httpie/fractional-indexing-python |
+| Language | Repo                                                  |
+| -------- | ----------------------------------------------------- |
+| Go       | https://github.com/rocicorp/fracdex                   |
+| Python   | https://github.com/httpie/fractional-indexing-python  |
+| Kotlin   | https://github.com/darvelo/fractional-indexing-kotlin |

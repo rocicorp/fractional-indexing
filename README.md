@@ -78,3 +78,4 @@ These should be byte-for-byte compatible.
 | Go       | https://github.com/rocicorp/fracdex                   |
 | Python   | https://github.com/httpie/fractional-indexing-python  |
 | Kotlin   | https://github.com/darvelo/fractional-indexing-kotlin |
+| Ruby     | https://github.com/kazu-2020/fractional_indexer       |

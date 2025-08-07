@@ -109,7 +109,7 @@ These libraries should be byte-for-byte compatible.
 
 ### Random Jitter
 
-To minimize the likelihood of index collisions when generating fractional indices concurrently, [random jitter](https://madebyevan.com/algos/crdt-fractional-indexing/) can be added to the generated indices. These libraries extend this package's functionality with random jitter.
+To minimize the likelihood of index collisions when generating fractional indexes concurrently, [random jitter](https://madebyevan.com/algos/crdt-fractional-indexing/) can be added to the generated indices. These libraries extend this package's functionality with random jitter.
 
 | Language   | Repo                                                         |
 | ---------- | ------------------------------------------------------------ |

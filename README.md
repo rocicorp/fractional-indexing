@@ -94,9 +94,11 @@ const sorted = arr.toSorted((a, b) =>
 );
 ```
 
-## Other Languages
+## Other Implementations
 
-These should be byte-for-byte compatible.
+### Languages
+
+These libraries should be byte-for-byte compatible.
 
 | Language | Repo                                                  |
 | -------- | ----------------------------------------------------- |
@@ -104,3 +106,12 @@ These should be byte-for-byte compatible.
 | Python   | https://github.com/httpie/fractional-indexing-python  |
 | Kotlin   | https://github.com/darvelo/fractional-indexing-kotlin |
 | Ruby     | https://github.com/kazu-2020/fractional_indexer       |
+
+### Random Jitter
+
+To minimize the likelihood of index collisions when generating fractional indexes concurrently, [random jitter](https://madebyevan.com/algos/crdt-fractional-indexing/) can be added to the generated indices. These libraries extend this package's functionality with random jitter.
+
+| Language   | Repo                                                         |
+| ---------- | ------------------------------------------------------------ |
+| TypeScript | https://github.com/nathanhleung/jittered-fractional-indexing |
+

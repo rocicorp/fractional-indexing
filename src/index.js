@@ -196,7 +196,7 @@ function decrementInteger(x, digits) {
 
 // `a` is an order key or null (START).
 // `b` is an order key or null (END).
-// `a < b` lexicographically if both are non-null.
+// As long as both a and b are not null, they can be provided in any order.
 // digits is a string such as '0123456789' for base 10.  Digits must be in
 // ascending character code order!
 /**
@@ -212,7 +212,9 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
   if (b != null) {
     validateOrderKey(b, digits);
   }
-  [a,b] = [a,b].sort()
+  if(a != null && b != null) {
+    [a,b] = [a,b].sort()
+  }
   
   if (a == null) {
     if (b == null) {

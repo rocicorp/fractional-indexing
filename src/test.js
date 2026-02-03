@@ -47,7 +47,7 @@ test("zzzzzzzzzzzzzzzzzzzzzzzzzzz", null, "zzzzzzzzzzzzzzzzzzzzzzzzzzzV");
 test("a00", null, "invalid order key: a00");
 test("a00", "a1", "invalid order key: a00");
 test("0", "1", "invalid order key head: 0");
-test("a1", "a0", "a1 >= a0");
+test("a1", "a0", "a0V");
 
 /**
  * @param {string | null} a

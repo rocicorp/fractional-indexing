@@ -242,9 +242,8 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
   if (b != null) {
     validateOrderKey(b, digits);
   }
-  if (a != null && b != null && a >= b) {
-    throw new Error(a + " >= " + b);
-  }
+  [a,b] = [a,b].sort()
+  
   if (a == null) {
     if (b == null) {
       return "a" + digits[0];

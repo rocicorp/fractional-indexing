@@ -3,16 +3,17 @@
   "version": "3.2.0",
   "description": "Provides functions for generating ordering strings",
   "type": "module",
+  "packageManager": "pnpm@11.1.2",
   "main": "src/index.js",
   "engines": {
     "node": "^14.13.1 || >=16.0.0"
   },
   "scripts": {
     "build-dts": "rm -f src/*.d.ts && tsc --emitDeclarationOnly && prettier src/*.d.ts --write",
-    "build": "npm run build-dts",
+    "build": "pnpm run build-dts",
     "format": "prettier *.json src/ --write",
-    "prepare": "npm run build && npm run format",
-    "prepack": "npm run prepare",
+    "prepare": "pnpm run build && pnpm run format",
+    "prepack": "pnpm run prepare",
     "test": "node src/test.js"
   },
   "keywords": [

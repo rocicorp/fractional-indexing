@@ -214,22 +214,26 @@ function isSmallestInteger(key, digits) {
   return key === cached;
 }
 
-// `a` is an order key or null (START).
-// `b` is an order key or null (END).
-// As long as both a and b are not null, they can be provided in any order.
-// digits is a string such as '0123456789' for base 10.  Digits must be in
-// ascending character code order, and may be any alphabet (it does not need to
-// contain 0-9, A-Z or a-z).  This precondition is NOT validated; an unsorted
-// alphabet produces keys that do not sort correctly.
-//
-// Note that `digits` only defines the *digit values* of a key.  The integer
-// part of every key also begins with a length/magnitude marker drawn from a
-// fixed Latin alphabet (a-z for positive lengths, A-Z for negative), regardless
-// of `digits`.  So e.g. base-10 keys look like "a0", "b00" or "Z9" -- the
-// leading letter is part of the key format, not a digit.  This marker only ever
-// occupies the first position and is only compared against other markers, which
-// is why alphabets that omit a-z/A-Z still sort correctly.
 /**
+ * Generates an order key that sorts between `a` and `b`.
+ *
+ * `a` is the lower bound: an order key, or null for the start.
+ * `b` is the upper bound: an order key, or null for the end.
+ * When both are non-null, they may be passed in either order.
+ *
+ * `digits` is the alphabet, e.g. '0123456789' for base 10. Its characters
+ * must be in ascending character code order, and may be any alphabet (it does
+ * not need to contain 0-9, A-Z or a-z). This precondition is NOT validated; an
+ * unsorted alphabet produces keys that do not sort correctly.
+ *
+ * Note that `digits` only defines the *digit values* of a key. The integer
+ * part of every key also begins with a length/magnitude marker drawn from a
+ * fixed Latin alphabet (a-z for positive lengths, A-Z for negative), regardless
+ * of `digits`. So e.g. base-10 keys look like "a0", "b00" or "Z9" -- the
+ * leading letter is part of the key format, not a digit. This marker only ever
+ * occupies the first position and is only compared against other markers, which
+ * is why alphabets that omit a-z/A-Z still sort correctly.
+ *
  * @param {string | null | undefined} a
  * @param {string | null | undefined} b
  * @param {string=} digits
@@ -243,7 +247,15 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
     validateOrderKey(b, digits);
   }
   if(a != null && b != null) {
-    [a,b] = [a,b].sort()
+
+    // swap if out of order, so that a < b.  this is just a convenience for
+    // callers, and doesn't affect the properties of the generated key.
+    if (a > b) {
+      let temp = a;
+      a = b;
+      b = temp;
+    }
+
   }
   
   if (a == null) {

@@ -29,10 +29,6 @@ jobs:
         with:
           node-version: '24.x'
 
-      # corepack activates pnpm from package.json's packageManager field.
-      # pnpm >=11.0.7 supports npm OIDC trusted publishing natively (and 11.1.3
-      # fixes the setup-node .npmrc interaction, pnpm#11513), so no NPM_TOKEN
-      # secret and no npm upgrade are needed.
       - name: Enable Corepack
         run: corepack enable
 

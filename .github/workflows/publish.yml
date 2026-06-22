@@ -1,0 +1,46 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  # pull_request:
+
+# Default-deny: grant tokens only to the jobs/steps that need them.
+permissions: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Gate publishes behind the "release" environment. Configure protection
+    # rules on it in repo Settings → Environments (required reviewers, and a
+    # deployment branch/tag policy limited to v* tags) so a publish can only
+    # run from a release tag and, optionally, after manual approval.
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # required for npm OIDC trusted publishing
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '24.x'
+
+      # corepack activates pnpm from package.json's packageManager field.
+      # pnpm >=11.0.7 supports npm OIDC trusted publishing natively (and 11.1.3
+      # fixes the setup-node .npmrc interaction, pnpm#11513), so no NPM_TOKEN
+      # secret and no npm upgrade are needed.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm run build
+
+      - name: Publish to npm with trusted publishing
+        run: pnpm publish --access public --provenance --no-git-checks ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}

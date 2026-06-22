@@ -82,10 +82,12 @@ function validateInteger(int, intDigits) {
 function getIntegerLength(head, intDigits) {
   if (intDigits === undefined) {
     const c = head.charCodeAt(0);
-    if (c >= 97 && c <= 122) { // 'a' - 'z'
+    if (c >= 97 && c <= 122) {
+      // 'a' - 'z'
       return c - 97 + 2; // 'a'
     }
-    if (c >= 65 && c <= 90) { // 'A' - 'Z'
+    if (c >= 65 && c <= 90) {
+      // 'A' - 'Z'
       return 90 - c + 2; // 'Z'
     }
   } else {
@@ -256,28 +258,36 @@ function decrementInteger(x, digits, intDigits) {
 }
 
 /**
- * @type {Map<string, string>}
+ * Two-level cache keyed by (intDigits, first digit char code). Nesting the maps
+ * lets us look up with the raw `intDigits` string and a primitive char code,
+ * avoiding the per-call allocation of a combined string key.
+ * @type {Map<string, Map<number, string>>}
  */
 const repeatedKeysCache = new Map();
 
 /**
  * @param {string} key
  * @param {string} digits
- * @param {string | undefined} intDigits
+ * @param {string=} intDigits Special case undefined as "" to get a Map of string.
  */
-function isSmallestInteger(key, digits, intDigits) {
+function isSmallestInteger(key, digits, intDigits = "") {
   // The smallest integer is the most-negative head (the first character of
   // intDigits, marking the longest integer part) followed by all-zero digits.
   // Use a cache to avoid constructing the same long string over and over which
   // causes unnecessary GC pressure.
-  const cacheKey = JSON.stringify([intDigits, digits[0]]);
-  let cached = repeatedKeysCache.get(cacheKey);
-  if (!cached) {
+  let byDigit = repeatedKeysCache.get(intDigits);
+  if (byDigit === undefined) {
+    byDigit = new Map();
+    repeatedKeysCache.set(intDigits, byDigit);
+  }
+  const zeroCode = digits.charCodeAt(0);
+  let cached = byDigit.get(zeroCode);
+  if (cached === undefined) {
     cached =
-      intDigits === undefined
+      intDigits === ""
         ? "A" + digits[0].repeat(26)
         : intDigits[0] + digits[0].repeat(intDigits.length / 2);
-    repeatedKeysCache.set(cacheKey, cached);
+    byDigit.set(zeroCode, cached);
   }
   return key === cached;
 }

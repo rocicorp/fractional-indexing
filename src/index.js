@@ -283,6 +283,81 @@ function isSmallestInteger(key, digits, intDigits) {
 }
 
 /**
+ * Returns true if every character of `s` has a strictly greater character code
+ * than the one before it (ascending order, which also rules out duplicates).
+ * @param {string} s
+ * @return {boolean}
+ */
+function isStrictlyAscending(s) {
+  for (let i = 1; i < s.length; i++) {
+    if (s.charCodeAt(i - 1) >= s.charCodeAt(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Alphabets that have already passed `validateDigits`. Validation is pure and
+ * its result never changes, so we cache the alphabet to skip re-scanning it on
+ * every call. Kept separate from `validatedIntDigits` because the two have
+ * different rules (an odd-length string is a valid `digits` but not `intDigits`).
+ * @type {Set<string>}
+ */
+const validatedDigits = new Set();
+
+/**
+ * Validates a fractional-digit alphabet: at least two characters, in strictly
+ * ascending character-code order.
+ * @param {string} digits
+ * @return {void}
+ */
+function validateDigits(digits) {
+  if (validatedDigits.has(digits)) {
+    return;
+  }
+  if (digits.length < 2 || !isStrictlyAscending(digits)) {
+    throw new Error(
+      "digits must be at least 2 characters in strictly ascending character " +
+        "code order: " +
+        digits
+    );
+  }
+  validatedDigits.add(digits);
+}
+
+/**
+ * Alphabets that have already passed `validateIntDigits`.
+ * @type {Set<string>}
+ */
+const validatedIntDigits = new Set();
+
+/**
+ * Validates a head-marker alphabet: an even number of at least two characters
+ * (its two halves are the negative- and positive-length heads), in strictly
+ * ascending character-code order.
+ * @param {string} intDigits
+ * @return {void}
+ */
+function validateIntDigits(intDigits) {
+  if (validatedIntDigits.has(intDigits)) {
+    return;
+  }
+  if (
+    intDigits.length < 2 ||
+    intDigits.length % 2 !== 0 ||
+    !isStrictlyAscending(intDigits)
+  ) {
+    throw new Error(
+      "intDigits must be an even number of at least 2 characters in strictly " +
+        "ascending character code order: " +
+        intDigits
+    );
+  }
+  validatedIntDigits.add(intDigits);
+}
+
+/**
  * Generates an order key that sorts between `a` and `b`.
  *
  * `a` is the lower bound: an order key, or null for the start.
@@ -331,6 +406,10 @@ export function generateKeyBetween(
   digits = BASE_62_DIGITS,
   intDigits = undefined
 ) {
+  validateDigits(digits);
+  if (intDigits !== undefined) {
+    validateIntDigits(intDigits);
+  }
   if (a != null) {
     validateOrderKey(a, digits, intDigits);
   }
@@ -417,6 +496,10 @@ export function generateNKeysBetween(
   digits = BASE_62_DIGITS,
   intDigits = undefined
 ) {
+  validateDigits(digits);
+  if (intDigits !== undefined) {
+    validateIntDigits(intDigits);
+  }
   if (n === 0) {
     return [];
   }

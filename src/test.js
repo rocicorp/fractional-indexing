@@ -268,6 +268,62 @@ testIntDigits("0123456789", "0123456789", "59", null, "600");
 testIntDigits("0123456789", "0123456789", null, "50", "49");
 testIntDigits("0123456789", "0123456789", "56", "57", "565");
 
+// `digits` and `intDigits` are validated once at the start of the public API.
+// `digits` must be at least two characters in strictly ascending character-code
+// order (which also rules out duplicates).
+testIntDigits(
+  "0213456789",
+  "ABab",
+  null,
+  null,
+  "digits must be at least 2 characters in strictly ascending character code order: 0213456789"
+);
+testIntDigits(
+  "0",
+  "ABab",
+  null,
+  null,
+  "digits must be at least 2 characters in strictly ascending character code order: 0"
+);
+testIntDigits(
+  "0012",
+  "ABab",
+  null,
+  null,
+  "digits must be at least 2 characters in strictly ascending character code order: 0012"
+);
+// `intDigits` must additionally be of even length (its two halves are the
+// negative- and positive-length heads).
+testIntDigits(
+  "0123456789",
+  "abc",
+  null,
+  null,
+  "intDigits must be an even number of at least 2 characters in strictly ascending character code order: abc"
+);
+testIntDigits(
+  "0123456789",
+  "ba",
+  null,
+  null,
+  "intDigits must be an even number of at least 2 characters in strictly ascending character code order: ba"
+);
+testIntDigits(
+  "0123456789",
+  "",
+  null,
+  null,
+  "intDigits must be an even number of at least 2 characters in strictly ascending character code order: "
+);
+// Validation also guards the generateNKeysBetween entry point.
+testNDigits(
+  "0",
+  null,
+  null,
+  5,
+  "digits must be at least 2 characters in strictly ascending character code order: 0"
+);
+
 testOrdering("01");
 testOrdering("0123456789");
 testOrdering("ΑΒΓΔΕΖΗΘ");

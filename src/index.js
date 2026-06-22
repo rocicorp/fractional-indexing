@@ -104,7 +104,7 @@ function getIntegerPart(key) {
  */
 
 function validateOrderKey(key, digits) {
-  if (key === "A" + digits[0].repeat(26)) {
+  if (isSmallestInteger(key, digits)) {
     throw new Error("invalid order key: " + key);
   }
   // getIntegerPart will throw if the first character is bad,
@@ -194,12 +194,46 @@ function decrementInteger(x, digits) {
   }
 }
 
-// `a` is an order key or null (START).
-// `b` is an order key or null (END).
-// `a < b` lexicographically if both are non-null.
-// digits is a string such as '0123456789' for base 10.  Digits must be in
-// ascending character code order!
 /**
+ * @type {Record<string, string>}
+ */
+const repeatedKeysCache = Object.create(null);
+
+/**
+ * @param {string} key
+ * @param {string} digits
+ */
+function isSmallestInteger(key, digits) {
+  // Use a cache to avoid constructing the same long string over and over which
+  // causes unnecessary GC pressure.
+  let cached = repeatedKeysCache[digits[0]];
+  if (!cached) {
+    cached = "A" + digits[0].repeat(26);
+    repeatedKeysCache[digits[0]] = cached;
+  }
+  return key === cached;
+}
+
+/**
+ * Generates an order key that sorts between `a` and `b`.
+ *
+ * `a` is the lower bound: an order key, or null for the start.
+ * `b` is the upper bound: an order key, or null for the end.
+ * When both are non-null, they may be passed in either order.
+ *
+ * `digits` is the alphabet, e.g. '0123456789' for base 10. Its characters
+ * must be in ascending character code order, and may be any alphabet (it does
+ * not need to contain 0-9, A-Z or a-z). This precondition is NOT validated; an
+ * unsorted alphabet produces keys that do not sort correctly.
+ *
+ * Note that `digits` only defines the *digit values* of a key. The integer
+ * part of every key also begins with a length/magnitude marker drawn from a
+ * fixed Latin alphabet (a-z for positive lengths, A-Z for negative), regardless
+ * of `digits`. So e.g. base-10 keys look like "a0", "b00" or "Z9" -- the
+ * leading letter is part of the key format, not a digit. This marker only ever
+ * occupies the first position and is only compared against other markers, which
+ * is why alphabets that omit a-z/A-Z still sort correctly.
+ *
  * @param {string | null | undefined} a
  * @param {string | null | undefined} b
  * @param {string=} digits
@@ -212,9 +246,16 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
   if (b != null) {
     validateOrderKey(b, digits);
   }
-  if (a != null && b != null && a >= b) {
-    throw new Error(a + " >= " + b);
+  if (a != null && b != null) {
+    // swap if out of order, so that a < b.  this is just a convenience for
+    // callers, and doesn't affect the properties of the generated key.
+    if (a > b) {
+      const temp = a;
+      a = b;
+      b = temp;
+    }
   }
+
   if (a == null) {
     if (b == null) {
       return "a" + digits[0];
@@ -222,7 +263,7 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
 
     const ib = getIntegerPart(b);
     const fb = b.slice(ib.length);
-    if (ib === "A" + digits[0].repeat(26)) {
+    if (isSmallestInteger(ib, digits)) {
       return ib + midpoint("", fb, digits);
     }
     if (ib < b) {

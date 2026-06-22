@@ -141,10 +141,11 @@ testBase95(
 );
 
 // Custom alphabets that do not contain the Latin head characters a-z/A-Z work
-// fine, as long as the digits are sorted in ascending character-code order.
-// Note that the generated keys still contain Latin head characters (the leading
-// "a", "b", "Z", ... below), because those are the integer-part magnitude
-// markers and are not part of the `digits` alphabet.
+// fine, as long as the digits are single-byte (char code 0-255) and sorted in
+// ascending character-code order. Note that the generated keys still contain
+// Latin head characters (the leading "a", "b", "Z", ... below), because those
+// are the integer-part magnitude markers and are not part of the `digits`
+// alphabet.
 
 /**
  * @param {string} digits
@@ -170,10 +171,17 @@ testNDigits("01", null, null, 8, "a0 a1 b00 b01 b10 b11 c000 c001");
 testNDigits("01", "a1", null, 1, "b00");
 testNDigits("01", "a0", "a1", 1, "a01");
 
-// Greek letters (U+0391..), an alphabet with none of 0-9, A-Z or a-z.
-testNDigits("ΑΒΓΔΕΖΗΘ", null, null, 10, "aΑ aΒ aΓ aΔ aΕ aΖ aΗ aΘ bΑΑ bΑΒ");
-testNDigits("ΑΒΓΔΕΖΗΘ", "aΑ", "aΒ", 1, "aΑΕ");
-testNDigits("ΑΒΓΔΕΖΗΘ", null, "aΑ", 1, "ZΘ");
+// Keys must be single-byte: a multi-byte alphabet (e.g. Greek, U+0391..) is
+// rejected, but Latin-1 characters (char code 128-255) are allowed.
+testNDigits(
+  "ΑΒΓΔΕΖΗΘ",
+  null,
+  null,
+  10,
+  "digits must be single-byte (char code 0-255): ΑΒΓΔΕΖΗΘ"
+);
+// Latin-1 alphabet (¡=161 .. ¥=165), all within the single-byte range.
+testNDigits("¡¢£¤¥", null, null, 6, "a¡ a¢ a£ a¤ a¥ b¡¡");
 
 // An alphabet of symbols whose character codes are all below "A".
 testNDigits(" !#$%", null, null, 6, "a  a! a# a$ a% b  ");
@@ -315,6 +323,14 @@ testIntDigits(
   null,
   "intDigits must be an even number of at least 2 characters in strictly ascending character code order: "
 );
+// Both alphabets must be single-byte.
+testIntDigits(
+  "0123456789",
+  "ΑΒΓΔ",
+  null,
+  null,
+  "intDigits must be single-byte (char code 0-255): ΑΒΓΔ"
+);
 // Validation also guards the generateNKeysBetween entry point.
 testNDigits(
   "0",
@@ -326,7 +342,6 @@ testNDigits(
 
 testOrdering("01");
 testOrdering("0123456789");
-testOrdering("ΑΒΓΔΕΖΗΘ");
 testOrdering(" !#$%");
 testOrdering("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 // digits and intDigits identical (base-10 keys with no letters).

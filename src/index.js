@@ -10,22 +10,24 @@ export const BASE_62_DIGITS =
 // equivalent of "ABC...XYZ" + "abc...xyz".
 
 /**
- * Per-alphabet cache mapping each digit character to its index, so digit->value
- * lookups are O(1) Map.get instead of O(alphabet) String.indexOf.
- * @type {Map<string, Map<string, number>>}
+ * Per-alphabet cache mapping each digit's char code to its index, so digit->value
+ * lookups are a single typed-array load instead of O(alphabet) String.indexOf.
+ * Keys (and therefore alphabets) are required to be single-byte (char code
+ * 0-255), so a fixed 256-entry table covers every possible char code.
+ * @type {Map<string, Uint8Array>}
  */
 const digitIndexCache = new Map();
 
 /**
  * @param {string} digits
- * @return {Map<string, number>}
+ * @return {Uint8Array}
  */
 function getDigitIndex(digits) {
   let m = digitIndexCache.get(digits);
   if (m === undefined) {
-    m = new Map();
+    m = new Uint8Array(256);
     for (let i = 0; i < digits.length; i++) {
-      m.set(digits[i], i);
+      m[digits.charCodeAt(i)] = i;
     }
     digitIndexCache.set(digits, m);
   }
@@ -41,7 +43,7 @@ function getDigitIndex(digits) {
  * @param {string} a
  * @param {string | null | undefined} b
  * @param {string} digits
- * @param {Map<string, number>} lookup
+ * @param {Uint8Array} lookup
  * @returns {string}
  */
 function midpoint(a, b, digits, lookup) {
@@ -65,9 +67,9 @@ function midpoint(a, b, digits, lookup) {
     }
   }
   // first digits (or lack of digit) are different
-  const digitA = a ? /** @type {number} */ (lookup.get(a[0])) : 0;
+  const digitA = a ? /** @type {number} */ (lookup[a.charCodeAt(0)]) : 0;
   const digitB =
-    b != null ? /** @type {number} */ (lookup.get(b[0])) : digits.length;
+    b != null ? /** @type {number} */ (lookup[b.charCodeAt(0)]) : digits.length;
   if (digitB - digitA > 1) {
     const midDigit = Math.round(0.5 * (digitA + digitB));
     return digits[midDigit];
@@ -169,7 +171,7 @@ function validateOrderKey(key, digits, intDigits) {
 /**
  * @param {string} x
  * @param {string} digits
- * @param {Map<string, number>} lookup
+ * @param {Uint8Array} lookup
  * @param {string | undefined} intDigits
  * @return {string | null}
  */
@@ -181,7 +183,7 @@ function incrementInteger(x, digits, lookup, intDigits) {
   // (`trailing`) until we find one we can bump.
   let trailing = "";
   for (let i = x.length - 1; i >= 1; i--) {
-    const d = /** @type {number} */ (lookup.get(x[i])) + 1;
+    const d = /** @type {number} */ (lookup[x.charCodeAt(i)]) + 1;
     if (d === digits.length) {
       trailing = zero + trailing;
     } else {
@@ -224,7 +226,7 @@ function incrementInteger(x, digits, lookup, intDigits) {
 /**
  * @param {string} x
  * @param {string} digits
- * @param {Map<string, number>} lookup
+ * @param {Uint8Array} lookup
  * @param {string | undefined} intDigits
  * @return {string | null}
  */
@@ -237,7 +239,7 @@ function decrementInteger(x, digits, lookup, intDigits) {
   // largest digit (`trailing`) until we find one we can drop.
   let trailing = "";
   for (let i = x.length - 1; i >= 1; i--) {
-    const d = /** @type {number} */ (lookup.get(x[i])) - 1;
+    const d = /** @type {number} */ (lookup[x.charCodeAt(i)]) - 1;
     if (d === -1) {
       trailing = last + trailing;
     } else {
@@ -327,6 +329,22 @@ function isStrictlyAscending(s) {
 }
 
 /**
+ * Returns true if every character of `s` is single-byte (char code < 256). Keys
+ * are required to be single-byte so digit lookups can use a fixed 256-entry
+ * table.
+ * @param {string} s
+ * @return {boolean}
+ */
+function isSingleByte(s) {
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) > 255) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Alphabets that have already passed `validateDigits`. Validation is pure and
  * its result never changes, so we cache the alphabet to skip re-scanning it on
  * every call. Kept separate from `validatedIntDigits` because the two have
@@ -351,6 +369,9 @@ function validateDigits(digits) {
         "code order: " +
         digits
     );
+  }
+  if (!isSingleByte(digits)) {
+    throw new Error("digits must be single-byte (char code 0-255): " + digits);
   }
   validatedDigits.add(digits);
 }
@@ -383,6 +404,11 @@ function validateIntDigits(intDigits) {
         intDigits
     );
   }
+  if (!isSingleByte(intDigits)) {
+    throw new Error(
+      "intDigits must be single-byte (char code 0-255): " + intDigits
+    );
+  }
   validatedIntDigits.add(intDigits);
 }
 
@@ -394,9 +420,9 @@ function validateIntDigits(intDigits) {
  * When both are non-null, they may be passed in either order.
  *
  * `digits` is the alphabet, e.g. '0123456789' for base 10. Its characters
- * must be in ascending character code order, and may be any alphabet (it does
- * not need to contain 0-9, A-Z or a-z). This precondition is NOT validated; an
- * unsorted alphabet produces keys that do not sort correctly.
+ * must be single-byte (char code 0-255) and in ascending character code order;
+ * both are validated. It may otherwise be any alphabet (it does not need to
+ * contain 0-9, A-Z or a-z).
  *
  * Note that `digits` only defines the *digit values* of a key. The integer
  * part of every key also begins with a length/magnitude marker drawn from the

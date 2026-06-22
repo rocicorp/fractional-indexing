@@ -246,8 +246,7 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
   if (b != null) {
     validateOrderKey(b, digits);
   }
-  if(a != null && b != null) {
-
+  if (a != null && b != null) {
     // swap if out of order, so that a < b.  this is just a convenience for
     // callers, and doesn't affect the properties of the generated key.
     if (a > b) {
@@ -255,9 +254,8 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
       a = b;
       b = temp;
     }
-
   }
-  
+
   if (a == null) {
     if (b == null) {
       return "a" + digits[0];

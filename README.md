@@ -83,15 +83,16 @@ generateNKeysBetween(null, null, 4, "0123456789"); // ["a0", "a1", "a2", "a3"]
 
 There are two important rules and one thing that surprises people:
 
-1. **`digits` must be sorted in ascending character-code order**, and contain no
-   duplicates. The generated keys sort correctly using ordinary lexicographic
-   (byte/code-unit) comparison _because_ the digits do. If you pass a shuffled or
-   unsorted alphabet, the keys will not sort in the order you expect. This
-   precondition is **not validated** — an unsorted alphabet fails silently.
+1. **`digits` must be single-byte and sorted in ascending character-code
+   order**, with no duplicates. Every character must have a char code in the
+   range 0-255 (so plain ASCII or Latin-1, but not multi-byte scripts). The
+   generated keys sort correctly using ordinary lexicographic comparison
+   _because_ the digits do. Both rules are validated and throw on violation.
 
 2. **The alphabet may be anything that obeys rule 1** — it does not need to
-   include the characters `0-9`, `A-Z`, or `a-z`. Obscure alphabets (symbols,
-   Greek, etc.) work fine as long as they are sorted by character code.
+   include the characters `0-9`, `A-Z`, or `a-z`. Obscure single-byte alphabets
+   (symbols, Latin-1, etc.) work fine as long as they are sorted by character
+   code. Multi-byte alphabets (e.g. Greek) are rejected.
 
 3. **Generated keys always contain Latin head characters (`a`-`z` and `A`-`Z`)
    regardless of `digits`.** The integer part of every key begins with a

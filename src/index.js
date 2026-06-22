@@ -9,6 +9,31 @@ export const BASE_62_DIGITS =
 // A-Z (negative lengths) followed by a-z (positive lengths) -- i.e. the
 // equivalent of "ABC...XYZ" + "abc...xyz".
 
+/**
+ * Per-alphabet cache mapping each digit's char code to its index, so digit->value
+ * lookups are a single typed-array load instead of O(alphabet) String.indexOf.
+ * Keys (and therefore alphabets) are required to be single-byte (char code
+ * 0-255), so a fixed 256-entry table covers every possible char code.
+ * @type {Map<string, Uint8Array>}
+ */
+const digitIndexCache = new Map();
+
+/**
+ * @param {string} digits
+ * @return {Uint8Array}
+ */
+function getDigitIndex(digits) {
+  let m = digitIndexCache.get(digits);
+  if (m === undefined) {
+    m = new Uint8Array(256);
+    for (let i = 0; i < digits.length; i++) {
+      m[digits.charCodeAt(i)] = i;
+    }
+    digitIndexCache.set(digits, m);
+  }
+  return m;
+}
+
 // `a` may be empty string, `b` is null or non-empty string.
 // `a < b` lexicographically if `b` is non-null.
 // no trailing zeros allowed.
@@ -18,9 +43,10 @@ export const BASE_62_DIGITS =
  * @param {string} a
  * @param {string | null | undefined} b
  * @param {string} digits
+ * @param {Uint8Array} lookup
  * @returns {string}
  */
-function midpoint(a, b, digits) {
+function midpoint(a, b, digits, lookup) {
   const zero = digits[0];
   if (b != null && a >= b) {
     throw new Error(a + " >= " + b);
@@ -37,12 +63,13 @@ function midpoint(a, b, digits) {
       n++;
     }
     if (n > 0) {
-      return b.slice(0, n) + midpoint(a.slice(n), b.slice(n), digits);
+      return b.slice(0, n) + midpoint(a.slice(n), b.slice(n), digits, lookup);
     }
   }
   // first digits (or lack of digit) are different
-  const digitA = a ? digits.indexOf(a[0]) : 0;
-  const digitB = b != null ? digits.indexOf(b[0]) : digits.length;
+  const digitA = a ? /** @type {number} */ (lookup[a.charCodeAt(0)]) : 0;
+  const digitB =
+    b != null ? /** @type {number} */ (lookup[b.charCodeAt(0)]) : digits.length;
   if (digitB - digitA > 1) {
     const midDigit = Math.round(0.5 * (digitA + digitB));
     return digits[midDigit];
@@ -57,7 +84,7 @@ function midpoint(a, b, digits) {
       // given, for example, midpoint('49', '5'), return
       // '4' + midpoint('9', null), which will become
       // '4' + '9' + midpoint('', null), which is '495'
-      return digits[digitA] + midpoint(a.slice(1), null, digits);
+      return digits[digitA] + midpoint(a.slice(1), null, digits, lookup);
     }
   }
 }
@@ -144,117 +171,111 @@ function validateOrderKey(key, digits, intDigits) {
 /**
  * @param {string} x
  * @param {string} digits
+ * @param {Uint8Array} lookup
  * @param {string | undefined} intDigits
  * @return {string | null}
  */
-function incrementInteger(x, digits, intDigits) {
+function incrementInteger(x, digits, lookup, intDigits) {
   validateInteger(x, intDigits);
-  const [head, ...digs] = x.split("");
-  let carry = true;
-  for (let i = digs.length - 1; carry && i >= 0; i--) {
-    const d = digits.indexOf(digs[i]) + 1;
+  const head = x[0];
+  const zero = digits[0];
+  // Walk the digit run right-to-left, turning maxed-out digits into zeros
+  // (`trailing`) until we find one we can bump.
+  let trailing = "";
+  for (let i = x.length - 1; i >= 1; i--) {
+    const d = /** @type {number} */ (lookup[x.charCodeAt(i)]) + 1;
     if (d === digits.length) {
-      digs[i] = digits[0];
+      trailing = zero + trailing;
     } else {
-      digs[i] = digits[d];
-      carry = false;
+      return head + x.slice(1, i) + digits[d] + trailing;
     }
   }
-  if (carry) {
-    if (intDigits === undefined) {
-      // fast path for the default A-Z/a-z markers.
-      if (head === "Z") {
-        return "a" + digits[0];
-      }
-      if (head === "z") {
-        return null;
-      }
-      const h = String.fromCharCode(head.charCodeAt(0) + 1);
-      if (h > "a") {
-        digs.push(digits[0]);
-      } else {
-        digs.pop();
-      }
-      return h + digs.join("");
+  // carry out of the whole digit run; `trailing` is now all zeros.
+  if (intDigits === undefined) {
+    // fast path for the default A-Z/a-z markers.
+    if (head === "Z") {
+      return "a" + zero;
     }
-    const headIndex = intDigits.indexOf(head);
-    if (headIndex === intDigits.length - 1) {
-      // already the largest integer
+    if (head === "z") {
       return null;
     }
-    const h = intDigits[headIndex + 1];
-    // the head moves one step toward the largest digit; grow or shrink the digit
-    // run to match the new head's integer length.
-    const lengthDelta =
-      getIntegerLength(h, intDigits) - getIntegerLength(head, intDigits);
-    if (lengthDelta > 0) {
-      digs.push(digits[0]);
-    } else if (lengthDelta < 0) {
-      digs.pop();
-    }
-    return h + digs.join("");
-  } else {
-    return head + digs.join("");
+    const h = String.fromCharCode(head.charCodeAt(0) + 1);
+    return h + (h > "a" ? trailing + zero : trailing.slice(1));
   }
+  const headIndex = intDigits.indexOf(head);
+  if (headIndex === intDigits.length - 1) {
+    // already the largest integer
+    return null;
+  }
+  const h = intDigits[headIndex + 1];
+  // the head moves one step toward the largest digit; grow or shrink the digit
+  // run to match the new head's integer length.
+  const lengthDelta =
+    getIntegerLength(h, intDigits) - getIntegerLength(head, intDigits);
+  return (
+    h +
+    (lengthDelta > 0
+      ? trailing + zero
+      : lengthDelta < 0
+      ? trailing.slice(1)
+      : trailing)
+  );
 }
 
 // note that this may return null, as there is a smallest integer
 /**
  * @param {string} x
  * @param {string} digits
+ * @param {Uint8Array} lookup
  * @param {string | undefined} intDigits
  * @return {string | null}
  */
 
-function decrementInteger(x, digits, intDigits) {
+function decrementInteger(x, digits, lookup, intDigits) {
   validateInteger(x, intDigits);
-  const [head, ...digs] = x.split("");
-  let borrow = true;
-  for (let i = digs.length - 1; borrow && i >= 0; i--) {
-    const d = digits.indexOf(digs[i]) - 1;
+  const head = x[0];
+  const last = digits[digits.length - 1];
+  // Walk the digit run right-to-left, turning underflowed digits into the
+  // largest digit (`trailing`) until we find one we can drop.
+  let trailing = "";
+  for (let i = x.length - 1; i >= 1; i--) {
+    const d = /** @type {number} */ (lookup[x.charCodeAt(i)]) - 1;
     if (d === -1) {
-      digs[i] = digits.slice(-1);
+      trailing = last + trailing;
     } else {
-      digs[i] = digits[d];
-      borrow = false;
+      return head + x.slice(1, i) + digits[d] + trailing;
     }
   }
-  if (borrow) {
-    if (intDigits === undefined) {
-      // fast path for the default A-Z/a-z markers.
-      if (head === "a") {
-        return "Z" + digits.slice(-1);
-      }
-      if (head === "A") {
-        return null;
-      }
-      const h = String.fromCharCode(head.charCodeAt(0) - 1);
-      if (h < "Z") {
-        digs.push(digits.slice(-1));
-      } else {
-        digs.pop();
-      }
-      return h + digs.join("");
+  // borrow out of the whole digit run; `trailing` is now all max digits.
+  if (intDigits === undefined) {
+    // fast path for the default A-Z/a-z markers.
+    if (head === "a") {
+      return "Z" + last;
     }
-    const headIndex = intDigits.indexOf(head);
-    if (headIndex === 0) {
-      // already the smallest integer
+    if (head === "A") {
       return null;
     }
-    const h = intDigits[headIndex - 1];
-    // the head moves one step toward the smallest digit; grow or shrink the
-    // digit run to match the new head's integer length.
-    const lengthDelta =
-      getIntegerLength(h, intDigits) - getIntegerLength(head, intDigits);
-    if (lengthDelta > 0) {
-      digs.push(digits.slice(-1));
-    } else if (lengthDelta < 0) {
-      digs.pop();
-    }
-    return h + digs.join("");
-  } else {
-    return head + digs.join("");
+    const h = String.fromCharCode(head.charCodeAt(0) - 1);
+    return h + (h < "Z" ? trailing + last : trailing.slice(1));
   }
+  const headIndex = intDigits.indexOf(head);
+  if (headIndex === 0) {
+    // already the smallest integer
+    return null;
+  }
+  const h = intDigits[headIndex - 1];
+  // the head moves one step toward the smallest digit; grow or shrink the
+  // digit run to match the new head's integer length.
+  const lengthDelta =
+    getIntegerLength(h, intDigits) - getIntegerLength(head, intDigits);
+  return (
+    h +
+    (lengthDelta > 0
+      ? trailing + last
+      : lengthDelta < 0
+      ? trailing.slice(1)
+      : trailing)
+  );
 }
 
 /**
@@ -308,6 +329,22 @@ function isStrictlyAscending(s) {
 }
 
 /**
+ * Returns true if every character of `s` is single-byte (char code < 256). Keys
+ * are required to be single-byte so digit lookups can use a fixed 256-entry
+ * table.
+ * @param {string} s
+ * @return {boolean}
+ */
+function isSingleByte(s) {
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) > 255) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Alphabets that have already passed `validateDigits`. Validation is pure and
  * its result never changes, so we cache the alphabet to skip re-scanning it on
  * every call. Kept separate from `validatedIntDigits` because the two have
@@ -332,6 +369,9 @@ function validateDigits(digits) {
         "code order: " +
         digits
     );
+  }
+  if (!isSingleByte(digits)) {
+    throw new Error("digits must be single-byte (char code 0-255): " + digits);
   }
   validatedDigits.add(digits);
 }
@@ -364,6 +404,11 @@ function validateIntDigits(intDigits) {
         intDigits
     );
   }
+  if (!isSingleByte(intDigits)) {
+    throw new Error(
+      "intDigits must be single-byte (char code 0-255): " + intDigits
+    );
+  }
   validatedIntDigits.add(intDigits);
 }
 
@@ -375,9 +420,9 @@ function validateIntDigits(intDigits) {
  * When both are non-null, they may be passed in either order.
  *
  * `digits` is the alphabet, e.g. '0123456789' for base 10. Its characters
- * must be in ascending character code order, and may be any alphabet (it does
- * not need to contain 0-9, A-Z or a-z). This precondition is NOT validated; an
- * unsorted alphabet produces keys that do not sort correctly.
+ * must be single-byte (char code 0-255) and in ascending character code order;
+ * both are validated. It may otherwise be any alphabet (it does not need to
+ * contain 0-9, A-Z or a-z).
  *
  * Note that `digits` only defines the *digit values* of a key. The integer
  * part of every key also begins with a length/magnitude marker drawn from the
@@ -420,6 +465,7 @@ export function generateKeyBetween(
   if (intDigits !== undefined) {
     validateIntDigits(intDigits);
   }
+  const lookup = getDigitIndex(digits);
   if (a != null) {
     validateOrderKey(a, digits, intDigits);
   }
@@ -448,12 +494,12 @@ export function generateKeyBetween(
     const ib = getIntegerPart(b, intDigits);
     const fb = b.slice(ib.length);
     if (isSmallestInteger(ib, digits, intDigits)) {
-      return ib + midpoint("", fb, digits);
+      return ib + midpoint("", fb, digits, lookup);
     }
     if (ib < b) {
       return ib;
     }
-    const res = decrementInteger(ib, digits, intDigits);
+    const res = decrementInteger(ib, digits, lookup, intDigits);
     if (res == null) {
       throw new Error("cannot decrement any more");
     }
@@ -463,8 +509,8 @@ export function generateKeyBetween(
   if (b == null) {
     const ia = getIntegerPart(a, intDigits);
     const fa = a.slice(ia.length);
-    const i = incrementInteger(ia, digits, intDigits);
-    return i == null ? ia + midpoint(fa, null, digits) : i;
+    const i = incrementInteger(ia, digits, lookup, intDigits);
+    return i == null ? ia + midpoint(fa, null, digits, lookup) : i;
   }
 
   const ia = getIntegerPart(a, intDigits);
@@ -472,16 +518,16 @@ export function generateKeyBetween(
   const ib = getIntegerPart(b, intDigits);
   const fb = b.slice(ib.length);
   if (ia === ib) {
-    return ia + midpoint(fa, fb, digits);
+    return ia + midpoint(fa, fb, digits, lookup);
   }
-  const i = incrementInteger(ia, digits, intDigits);
+  const i = incrementInteger(ia, digits, lookup, intDigits);
   if (i == null) {
     throw new Error("cannot increment any more");
   }
   if (i < b) {
     return i;
   }
-  return ia + midpoint(fa, null, digits);
+  return ia + midpoint(fa, null, digits, lookup);
 }
 
 /**

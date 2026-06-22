@@ -120,3 +120,78 @@ testBase95(
   "A                          ",
   "invalid order key: A                          "
 );
+
+// Custom alphabets that do not contain the Latin head characters a-z/A-Z work
+// fine, as long as the digits are sorted in ascending character-code order.
+// Note that the generated keys still contain Latin head characters (the leading
+// "a", "b", "Z", ... below), because those are the integer-part magnitude
+// markers and are not part of the `digits` alphabet.
+
+/**
+ * @param {string} digits
+ * @param {string | null} a
+ * @param {string | null} b
+ * @param {number} n
+ * @param {string} exp
+ */
+function testNDigits(digits, a, b, n, exp) {
+  /** @type {string} */
+  let act;
+  try {
+    act = generateNKeysBetween(a, b, n, digits).join(" ");
+  } catch (exp) {
+    act = exp.message;
+  }
+
+  console.assert(exp == act, `${exp} == ${act}`);
+}
+
+// Base 2.
+testNDigits("01", null, null, 8, "a0 a1 b00 b01 b10 b11 c000 c001");
+testNDigits("01", "a1", null, 1, "b00");
+testNDigits("01", "a0", "a1", 1, "a01");
+
+// Greek letters (U+0391..), an alphabet with none of 0-9, A-Z or a-z.
+testNDigits("ΑΒΓΔΕΖΗΘ", null, null, 10, "aΑ aΒ aΓ aΔ aΕ aΖ aΗ aΘ bΑΑ bΑΒ");
+testNDigits("ΑΒΓΔΕΖΗΘ", "aΑ", "aΒ", 1, "aΑΕ");
+testNDigits("ΑΒΓΔΕΖΗΘ", null, "aΑ", 1, "ZΘ");
+
+// An alphabet of symbols whose character codes are all below "A".
+testNDigits(" !#$%", null, null, 6, "a  a! a# a$ a% b  ");
+testNDigits(" !#$%", "a ", "a!", 1, "a $");
+
+// Generated keys must sort with ordinary lexicographic comparison for any
+// ascending alphabet.  Insert at random positions and verify ordering holds.
+/**
+ * @param {string} digits
+ */
+function testOrdering(digits) {
+  let seed = 1;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  /** @type {string[]} */
+  const list = [];
+  for (let i = 0; i < 1000; i++) {
+    const pos = Math.floor(rnd() * (list.length + 1));
+    const a = pos > 0 ? list[pos - 1] : null;
+    const b = pos < list.length ? list[pos] : null;
+    const k = generateKeyBetween(a, b, digits);
+    console.assert(
+      (a === null || a < k) && (b === null || k < b),
+      `out of range for ${JSON.stringify(digits)}: ${a} < ${k} < ${b}`
+    );
+    list.splice(pos, 0, k);
+  }
+  const sorted = [...list].sort();
+  console.assert(
+    sorted.every((v, i) => v === list[i]),
+    `not stably sorted for ${JSON.stringify(digits)}`
+  );
+}
+
+testOrdering("01");
+testOrdering("0123456789");
+testOrdering("ΑΒΓΔΕΖΗΘ");
+testOrdering(" !#$%");
+testOrdering(
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+);

@@ -251,7 +251,7 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
     // swap if out of order, so that a < b.  this is just a convenience for
     // callers, and doesn't affect the properties of the generated key.
     if (a > b) {
-      let temp = a;
+      const temp = a;
       a = b;
       b = temp;
     }

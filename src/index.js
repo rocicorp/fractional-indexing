@@ -270,7 +270,7 @@ function isSmallestInteger(key, digits, intDigits) {
   // intDigits, marking the longest integer part) followed by all-zero digits.
   // Use a cache to avoid constructing the same long string over and over which
   // causes unnecessary GC pressure.
-  const cacheKey = (intDigits === undefined ? "" : intDigits) + " " + digits[0];
+  const cacheKey = JSON.stringify([intDigits, digits[0]]);
   let cached = repeatedKeysCache.get(cacheKey);
   if (!cached) {
     cached =

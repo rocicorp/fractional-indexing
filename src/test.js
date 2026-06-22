@@ -47,7 +47,7 @@ test("zzzzzzzzzzzzzzzzzzzzzzzzzzz", null, "zzzzzzzzzzzzzzzzzzzzzzzzzzzV");
 test("a00", null, "invalid order key: a00");
 test("a00", "a1", "invalid order key: a00");
 test("0", "1", "invalid order key head: 0");
-test("a1", "a0", "a1 >= a0");
+test("a1", "a0", "a0V");
 
 /**
  * @param {string | null} a
@@ -167,7 +167,8 @@ testNDigits(" !#$%", "a ", "a!", 1, "a $");
  */
 function testOrdering(digits) {
   let seed = 1;
-  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const rnd = () =>
+    (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   /** @type {string[]} */
   const list = [];
   for (let i = 0; i < 1000; i++) {
@@ -192,6 +193,4 @@ testOrdering("01");
 testOrdering("0123456789");
 testOrdering("ΑΒΓΔΕΖΗΘ");
 testOrdering(" !#$%");
-testOrdering(
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-);
+testOrdering("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");

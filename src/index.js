@@ -104,7 +104,7 @@ function getIntegerPart(key) {
  */
 
 function validateOrderKey(key, digits) {
-  if (key === "A" + digits[0].repeat(26)) {
+  if (isSmallestInteger(key, digits)) {
     throw new Error("invalid order key: " + key);
   }
   // getIntegerPart will throw if the first character is bad,
@@ -194,6 +194,26 @@ function decrementInteger(x, digits) {
   }
 }
 
+/**
+ * @type {Record<string, string>}
+ */
+const repeatedKeysCache = Object.create(null);
+
+/**
+ * @param {string} key
+ * @param {string} digits
+ */
+function isSmallestInteger(key, digits) {
+  // Use a cache to avoid constructing the same long string over and over which
+  // causes unnecessary GC pressure.
+  let cached = repeatedKeysCache[digits[0]];
+  if (!cached) {
+    cached = "A" + digits[0].repeat(26);
+    repeatedKeysCache[digits[0]] = cached;
+  }
+  return key === cached;
+}
+
 // `a` is an order key or null (START).
 // `b` is an order key or null (END).
 // `a < b` lexicographically if both are non-null.
@@ -222,7 +242,7 @@ export function generateKeyBetween(a, b, digits = BASE_62_DIGITS) {
 
     const ib = getIntegerPart(b);
     const fb = b.slice(ib.length);
-    if (ib === "A" + digits[0].repeat(26)) {
+    if (isSmallestInteger(ib, digits)) {
       return ib + midpoint("", fb, digits);
     }
     if (ib < b) {

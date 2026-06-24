@@ -1,4 +1,8 @@
-import { generateKeyBetween, generateNKeysBetween } from "./index.js";
+import {
+  generateKeyBetween,
+  generateNKeysBetween,
+  BASE_52_DIGITS,
+} from "./index.js";
 
 /**
  * @param {string} digits
@@ -12,8 +16,8 @@ function testIntDigits(digits, intDigits, a, b, exp) {
   let act;
   try {
     act = generateKeyBetween(a, b, digits, intDigits);
-  } catch (exp) {
-    act = exp.message;
+  } catch (e) {
+    act = e.message;
   }
 
   console.assert(exp == act, `${exp} == ${act}`);
@@ -29,13 +33,15 @@ function test(a, b, exp) {
   let act;
   try {
     act = generateKeyBetween(a, b);
-  } catch (exp) {
-    act = exp.message;
+  } catch (e) {
+    act = e.message;
   }
 
   console.assert(exp == act, `${exp} == ${act}`);
 }
 
+// With no `digits` and no `intDigits` the default is unchanged: BASE_62 digits
+// with the A-Z/a-z head markers, so keys still look like "a0", "Zz", ...
 test(null, null, "a0");
 test(null, "a0", "Zz");
 test(null, "Zz", "Zy");
@@ -81,21 +87,24 @@ function testN(a, b, n, exp) {
   let act;
   try {
     act = generateNKeysBetween(a, b, n, BASE_10_DIGITS).join(" ");
-  } catch (exp) {
-    act = exp.message;
+  } catch (e) {
+    act = e.message;
   }
 
   console.assert(exp == act, `${exp} == ${act}`);
 }
 
-testN(null, null, 5, "a0 a1 a2 a3 a4");
-testN("a4", null, 10, "a5 a6 a7 a8 a9 b00 b01 b02 b03 b04");
-testN(null, "a0", 5, "Z5 Z6 Z7 Z8 Z9");
+// A custom `digits` with no `intDigits` now uses `digits` itself as the head
+// alphabet, so base-10 keys contain no letters: heads 0-4 are negative lengths,
+// 5-9 positive, and 4/5 mark the shortest (length-2) integer parts.
+testN(null, null, 5, "50 51 52 53 54");
+testN("54", null, 10, "55 56 57 58 59 600 601 602 603 604");
+testN(null, "50", 5, "45 46 47 48 49");
 testN(
-  "a0",
-  "a2",
+  "50",
+  "52",
   20,
-  "a01 a02 a03 a035 a04 a05 a06 a07 a08 a09 a1 a11 a12 a13 a14 a15 a16 a17 a18 a19"
+  "501 502 503 5035 504 505 506 507 508 509 51 511 512 513 514 515 516 517 518 519"
 );
 
 /**
@@ -110,9 +119,11 @@ function testBase95(a, b, exp) {
   /** @type {string} */
   let act;
   try {
-    act = generateKeyBetween(a, b, BASE_95_DIGITS);
-  } catch (exp) {
-    act = exp.message;
+    // base-95 is odd-length, so it can't supply its own (even) head alphabet;
+    // pass the default A-Z/a-z markers explicitly to keep Latin heads.
+    act = generateKeyBetween(a, b, BASE_95_DIGITS, BASE_52_DIGITS);
+  } catch (e) {
+    act = e.message;
   }
 
   console.assert(exp == act, `${exp} == ${act}`);
@@ -141,11 +152,10 @@ testBase95(
 );
 
 // Custom alphabets that do not contain the Latin head characters a-z/A-Z work
-// fine, as long as the digits are single-byte (char code 0-255) and sorted in
-// ascending character-code order. Note that the generated keys still contain
-// Latin head characters (the leading "a", "b", "Z", ... below), because those
-// are the integer-part magnitude markers and are not part of the `digits`
-// alphabet.
+// fine, as long as the digits are even-length, single-byte (char code 0-255),
+// and sorted in ascending character-code order. With no `intDigits` the digit
+// alphabet itself supplies the integer heads, so the generated keys are
+// self-headed (no Latin letters).
 
 /**
  * @param {string} digits
@@ -159,17 +169,23 @@ function testNDigits(digits, a, b, n, exp) {
   let act;
   try {
     act = generateNKeysBetween(a, b, n, digits).join(" ");
-  } catch (exp) {
-    act = exp.message;
+  } catch (e) {
+    act = e.message;
   }
 
   console.assert(exp == act, `${exp} == ${act}`);
 }
 
-// Base 2.
-testNDigits("01", null, null, 8, "a0 a1 b00 b01 b10 b11 c000 c001");
-testNDigits("01", "a1", null, 1, "b00");
-testNDigits("01", "a0", "a1", 1, "a01");
+// Base 2: the integer range is tiny (only heads "0" and "1").
+testNDigits(
+  "01",
+  null,
+  null,
+  8,
+  "10 11 111 1111 11111 111111 1111111 11111111"
+);
+testNDigits("01", "10", null, 1, "11");
+testNDigits("01", "10", "11", 1, "101");
 
 // Keys must be single-byte: a multi-byte alphabet (e.g. Greek, U+0391..) is
 // rejected, but Latin-1 characters (char code 128-255) are allowed.
@@ -180,12 +196,11 @@ testNDigits(
   10,
   "digits must be single-byte (char code 0-255): ΑΒΓΔΕΖΗΘ"
 );
-// Latin-1 alphabet (¡=161 .. ¥=165), all within the single-byte range.
-testNDigits("¡¢£¤¥", null, null, 6, "a¡ a¢ a£ a¤ a¥ b¡¡");
+// A Latin-1 alphabet (¡=161 .. ¦=166), all within the single-byte range.
+testNDigits("¡¢£¤¥¦", null, null, 6, "¤¡ ¤¢ ¤£ ¤¤ ¤¥ ¤¦");
 
 // An alphabet of symbols whose character codes are all below "A".
-testNDigits(" !#$%", null, null, 6, "a  a! a# a$ a% b  ");
-testNDigits(" !#$%", "a ", "a!", 1, "a $");
+testNDigits(" !#$%&", null, null, 6, "$  $! $# $$ $% $&");
 
 // Generated keys must sort with ordinary lexicographic comparison for any
 // ascending alphabet.  Insert at random positions and verify ordering holds.
@@ -222,12 +237,13 @@ function testOrdering(digits, intDigits) {
 }
 
 // `intDigits` overrides the integer-part head alphabet (which defaults to the
-// hardcoded a-z/A-Z markers).  It is a single ascending (lexicographically
-// ordered) alphabet: the first half are the negative-length heads and the second
-// half the positive-length heads.  The outermost characters mark the longest
-// integer parts and the two heads straddling the midpoint mark the shortest
-// (length 2).  Restricting it to a shorter alphabet limits how long the integer
-// part may grow, and any head outside `intDigits` is invalid.
+// digit alphabet, or to the A-Z/a-z markers when no `digits` is given).  It is a
+// single ascending (lexicographically ordered) alphabet: the first half are the
+// negative-length heads and the second half the positive-length heads.  The
+// outermost characters mark the longest integer parts and the two heads
+// straddling the midpoint mark the shortest (length 2).  Restricting it to a
+// shorter alphabet limits how long the integer part may grow, and any head
+// outside `intDigits` is invalid.
 
 // Limit negative heads to "A","B" and positive heads to "a","b"; the inner pair
 // (B, a) mark length 2 and the outer pair (A, b) mark length 3.
@@ -240,12 +256,8 @@ testIntDigits("0123456789", "ABab", null, "B9", "B8");
 testIntDigits("0123456789", "ABab", "c00", null, "invalid order key head: c");
 testIntDigits("0123456789", "ABab", "00", "01", "invalid order key head: 0");
 
-// An undefined `intDigits` must behave identically to passing the explicit
-// default head alphabet in ascending order: the negative heads A-Z followed by
-// the positive heads a-z (so Z and a, straddling the midpoint, both mark
-// length 2, mirroring the default Z->2 and a->2).
-const DEFAULT_INT_DIGITS =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "abcdefghijklmnopqrstuvwxyz";
+// An omitted `intDigits` defaults to `digits`, so it must behave identically to
+// passing `digits` as the head alphabet.
 {
   let seed = 1;
   const rnd = () =>
@@ -258,18 +270,19 @@ const DEFAULT_INT_DIGITS =
     const a = pos > 0 ? list[pos - 1] : null;
     const b = pos < list.length ? list[pos] : null;
     const def = generateKeyBetween(a, b, digits);
-    const cust = generateKeyBetween(a, b, digits, DEFAULT_INT_DIGITS);
+    const cust = generateKeyBetween(a, b, digits, digits);
     console.assert(
       def === cust,
-      `undefined intDigits should match default alphabet: ${a},${b} => ${def} !== ${cust}`
+      `omitted intDigits should match digits: ${a},${b} => ${def} !== ${cust}`
     );
     list.splice(pos, 0, def);
   }
 }
 
-// `intDigits` may be identical to `digits`, producing keys with no letters at
-// all: the first half (0-4) are negative heads and the second half (5-9)
-// positive heads, so 4 and 5 mark the shortest (length-2) integer parts.
+// `intDigits` may be identical to `digits` (which is now also the default),
+// producing keys with no letters at all: the first half (0-4) are negative heads
+// and the second half (5-9) positive heads, so 4 and 5 mark the shortest
+// (length-2) integer parts.
 testIntDigits("0123456789", "0123456789", null, null, "50");
 testIntDigits("0123456789", "0123456789", "50", null, "51");
 testIntDigits("0123456789", "0123456789", "59", null, "600");
@@ -340,9 +353,12 @@ testNDigits(
   "digits must be at least 2 characters in strictly ascending character code order: 0"
 );
 
-testOrdering("01");
 testOrdering("0123456789");
-testOrdering(" !#$%");
+testOrdering(" !#$%&");
+testOrdering("¡¢£¤¥¦");
 testOrdering("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+// base 2 self-heading has too small an integer range to sustain 1000 inserts,
+// so give it the wider A-Z/a-z head alphabet.
+testOrdering("01", BASE_52_DIGITS);
 // digits and intDigits identical (base-10 keys with no letters).
 testOrdering("0123456789", "0123456789");

@@ -1,6 +1,6 @@
 {
   "name": "fractional-indexing",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Provides functions for generating ordering strings",
   "type": "module",
   "packageManager": "pnpm@11.8.0",

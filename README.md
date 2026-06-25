@@ -1,5 +1,7 @@
 # Fractional Indexing
 
+<!-- Test comment added to verify the PR workflow. -->
+
 This is based on [Implementing Fractional Indexing
 ](https://observablehq.com/@dgreensp/implementing-fractional-indexing) by [David Greenspan
 ](https://github.com/dgreensp).

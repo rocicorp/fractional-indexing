@@ -3,11 +3,14 @@
 // This is based on https://observablehq.com/@dgreensp/implementing-fractional-indexing
 
 export const BASE_62_DIGITS =
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"; // 0-9 + A-Z + a-z
 
-// When `intDigits` is not supplied, the integer-part head alphabet defaults to
-// A-Z (negative lengths) followed by a-z (positive lengths) -- i.e. the
-// equivalent of "ABC...XYZ" + "abc...xyz".
+export const BASE_52_DIGITS = BASE_62_DIGITS.slice(10); // A-Z + a-z
+
+// `intDigits` (the integer-part head alphabet) defaults to `digits`. When
+// `digits` is also omitted it falls back to BASE_52_DIGITS -- A-Z (negative
+// lengths) followed by a-z (positive lengths) -- so the default keys keep the
+// classic "a0", "Zz", ... form.
 
 /**
  * Per-alphabet cache mapping each digit's char code to its index, so digit->value
@@ -91,55 +94,48 @@ function midpoint(a, b, digits, lookup) {
 
 /**
  * @param {string} int
- * @param {string | undefined} intDigits
+ * @param {string} intDigits
+ * @param {Uint8Array} intLookup
  * @return {void}
  */
 
-function validateInteger(int, intDigits) {
-  if (int.length !== getIntegerLength(int[0], intDigits)) {
+function validateInteger(int, intDigits, intLookup) {
+  if (int.length !== getIntegerLength(int[0], intDigits, intLookup)) {
     throw new Error("invalid integer part of order key: " + int);
   }
 }
 
 /**
  * @param {string} head
- * @param {string | undefined} intDigits
+ * @param {string} intDigits
+ * @param {Uint8Array} intLookup
  * @return {number}
  */
-function getIntegerLength(head, intDigits) {
-  if (intDigits === undefined) {
-    const c = head.charCodeAt(0);
-    if (c >= 97 && c <= 122) {
-      // 'a' - 'z'
-      return c - 97 + 2; // 'a'
-    }
-    if (c >= 65 && c <= 90) {
-      // 'A' - 'Z'
-      return 90 - c + 2; // 'Z'
-    }
-  } else {
-    // intDigits is a single lexicographically ordered (ascending) alphabet: the
-    // first half are the negative-length heads and the second half the
-    // positive-length heads, mirroring the default A-Z/a-z scheme. The outermost
-    // characters mark the longest integer parts, and the two heads straddling
-    // the midpoint mark the shortest (length 2).
-    const i = intDigits.indexOf(head);
-    if (i !== -1) {
-      const half = intDigits.length / 2;
-      return i < half ? half - i + 1 : i - half + 2;
-    }
+function getIntegerLength(head, intDigits, intLookup) {
+  // intDigits is a single lexicographically ordered (ascending) alphabet: the
+  // first half are the negative-length heads and the second half the
+  // positive-length heads (the default A-Z/a-z markers are just one such
+  // alphabet). The outermost characters mark the longest integer parts, and the
+  // two heads straddling the midpoint mark the shortest (length 2).
+  const i = intLookup[head.charCodeAt(0)];
+  // `intLookup` returns 0 for any char code not in the alphabet, so confirm the
+  // char really is at index `i` before trusting it as a head.
+  if (intDigits[i] === head) {
+    const half = intDigits.length / 2;
+    return i < half ? half - i + 1 : i - half + 2;
   }
   throw new Error("invalid order key head: " + head);
 }
 
 /**
  * @param {string} key
- * @param {string | undefined} intDigits
+ * @param {string} intDigits
+ * @param {Uint8Array} intLookup
  * @return {string}
  */
 
-function getIntegerPart(key, intDigits) {
-  const integerPartLength = getIntegerLength(key[0], intDigits);
+function getIntegerPart(key, intDigits, intLookup) {
+  const integerPartLength = getIntegerLength(key[0], intDigits, intLookup);
   if (integerPartLength > key.length) {
     throw new Error("invalid order key: " + key);
   }
@@ -149,18 +145,18 @@ function getIntegerPart(key, intDigits) {
 /**
  * @param {string} key
  * @param {string} digits
- * @param {string | undefined} intDigits
+ * @param {string} intDigits
+ * @param {Uint8Array} intLookup
  * @return {void}
  */
-
-function validateOrderKey(key, digits, intDigits) {
+function validateOrderKey(key, digits, intDigits, intLookup) {
   if (isSmallestInteger(key, digits, intDigits)) {
     throw new Error("invalid order key: " + key);
   }
   // getIntegerPart will throw if the first character is bad,
   // or the key is too short.  we'd call it to check these things
   // even if we didn't need the result
-  const i = getIntegerPart(key, intDigits);
+  const i = getIntegerPart(key, intDigits, intLookup);
   const f = key.slice(i.length);
   if (f.slice(-1) === digits[0]) {
     throw new Error("invalid order key: " + key);
@@ -172,11 +168,12 @@ function validateOrderKey(key, digits, intDigits) {
  * @param {string} x
  * @param {string} digits
  * @param {Uint8Array} lookup
- * @param {string | undefined} intDigits
+ * @param {string} intDigits
+ * @param {Uint8Array} intLookup
  * @return {string | null}
  */
-function incrementInteger(x, digits, lookup, intDigits) {
-  validateInteger(x, intDigits);
+function incrementInteger(x, digits, lookup, intDigits, intLookup) {
+  validateInteger(x, intDigits, intLookup);
   const head = x[0];
   const zero = digits[0];
   // Walk the digit run right-to-left, turning maxed-out digits into zeros
@@ -191,18 +188,7 @@ function incrementInteger(x, digits, lookup, intDigits) {
     }
   }
   // carry out of the whole digit run; `trailing` is now all zeros.
-  if (intDigits === undefined) {
-    // fast path for the default A-Z/a-z markers.
-    if (head === "Z") {
-      return "a" + zero;
-    }
-    if (head === "z") {
-      return null;
-    }
-    const h = String.fromCharCode(head.charCodeAt(0) + 1);
-    return h + (h > "a" ? trailing + zero : trailing.slice(1));
-  }
-  const headIndex = intDigits.indexOf(head);
+  const headIndex = intLookup[head.charCodeAt(0)];
   if (headIndex === intDigits.length - 1) {
     // already the largest integer
     return null;
@@ -211,7 +197,8 @@ function incrementInteger(x, digits, lookup, intDigits) {
   // the head moves one step toward the largest digit; grow or shrink the digit
   // run to match the new head's integer length.
   const lengthDelta =
-    getIntegerLength(h, intDigits) - getIntegerLength(head, intDigits);
+    getIntegerLength(h, intDigits, intLookup) -
+    getIntegerLength(head, intDigits, intLookup);
   return (
     h +
     (lengthDelta > 0
@@ -227,12 +214,13 @@ function incrementInteger(x, digits, lookup, intDigits) {
  * @param {string} x
  * @param {string} digits
  * @param {Uint8Array} lookup
- * @param {string | undefined} intDigits
+ * @param {string} intDigits
+ * @param {Uint8Array} intLookup
  * @return {string | null}
  */
 
-function decrementInteger(x, digits, lookup, intDigits) {
-  validateInteger(x, intDigits);
+function decrementInteger(x, digits, lookup, intDigits, intLookup) {
+  validateInteger(x, intDigits, intLookup);
   const head = x[0];
   const last = digits[digits.length - 1];
   // Walk the digit run right-to-left, turning underflowed digits into the
@@ -247,18 +235,7 @@ function decrementInteger(x, digits, lookup, intDigits) {
     }
   }
   // borrow out of the whole digit run; `trailing` is now all max digits.
-  if (intDigits === undefined) {
-    // fast path for the default A-Z/a-z markers.
-    if (head === "a") {
-      return "Z" + last;
-    }
-    if (head === "A") {
-      return null;
-    }
-    const h = String.fromCharCode(head.charCodeAt(0) - 1);
-    return h + (h < "Z" ? trailing + last : trailing.slice(1));
-  }
-  const headIndex = intDigits.indexOf(head);
+  const headIndex = intLookup[head.charCodeAt(0)];
   if (headIndex === 0) {
     // already the smallest integer
     return null;
@@ -267,7 +244,8 @@ function decrementInteger(x, digits, lookup, intDigits) {
   // the head moves one step toward the smallest digit; grow or shrink the
   // digit run to match the new head's integer length.
   const lengthDelta =
-    getIntegerLength(h, intDigits) - getIntegerLength(head, intDigits);
+    getIntegerLength(h, intDigits, intLookup) -
+    getIntegerLength(head, intDigits, intLookup);
   return (
     h +
     (lengthDelta > 0
@@ -289,9 +267,9 @@ const repeatedKeysCache = new Map();
 /**
  * @param {string} key
  * @param {string} digits
- * @param {string=} intDigits Special case undefined as "" to get a Map of string.
+ * @param {string} intDigits
  */
-function isSmallestInteger(key, digits, intDigits = "") {
+function isSmallestInteger(key, digits, intDigits) {
   // The smallest integer is the most-negative head (the first character of
   // intDigits, marking the longest integer part) followed by all-zero digits.
   // Use a cache to avoid constructing the same long string over and over which
@@ -304,10 +282,7 @@ function isSmallestInteger(key, digits, intDigits = "") {
   const zeroCode = digits.charCodeAt(0);
   let cached = byDigit.get(zeroCode);
   if (cached === undefined) {
-    cached =
-      intDigits === ""
-        ? "A" + digits[0].repeat(26)
-        : intDigits[0] + digits[0].repeat(intDigits.length / 2);
+    cached = intDigits[0] + digits[0].repeat(intDigits.length / 2);
     byDigit.set(zeroCode, cached);
   }
   return key === cached;
@@ -422,32 +397,34 @@ function validateIntDigits(intDigits) {
  * `digits` is the alphabet, e.g. '0123456789' for base 10. Its characters
  * must be single-byte (char code 0-255) and in ascending character code order;
  * both are validated. It may otherwise be any alphabet (it does not need to
- * contain 0-9, A-Z or a-z).
+ * contain 0-9, A-Z or a-z). Because `intDigits` defaults to `digits`, an
+ * odd-length `digits` must be paired with an explicit even-length `intDigits`.
  *
  * Note that `digits` only defines the *digit values* of a key. The integer
- * part of every key also begins with a length/magnitude marker drawn from the
- * `intDigits` alphabet (A-Z for negative lengths, a-z for positive by default),
- * regardless of `digits`. So e.g. base-10 keys look like "a0", "b00" or "Z9" --
- * the leading character is a head marker, not a fractional digit. This marker
- * only ever occupies the first position and is only compared against other
- * markers, which is why `digits` and `intDigits` may overlap (or be identical)
- * and keys still sort correctly.
+ * part of every key also begins with a length/magnitude marker (a "head") drawn
+ * from the `intDigits` alphabet. The head only ever occupies the first position
+ * and is only compared against other heads, which is why `digits` and
+ * `intDigits` may overlap (or be identical) and keys still sort correctly.
  *
- * `intDigits` overrides that marker alphabet. It is a single alphabet in
- * ascending (lexicographical) character order, with even length: its first half
- * are the negative-length heads and its second half the positive-length heads.
- * The outermost characters mark the longest integer parts and the two characters
+ * `intDigits` is the head alphabet: a single alphabet in ascending
+ * (lexicographical) character order, with even length. Its first half are the
+ * negative-length heads and its second half the positive-length heads. The
+ * outermost characters mark the longest integer parts and the two characters
  * straddling the midpoint mark the shortest (length 2). The integer part may
  * grow until it reaches the outermost heads, so a shorter alphabet limits how
- * large/small a key's integer part can become. Defaults to the equivalent of
- * "ABC...XYZ" + "abc...xyz".
+ * large/small a key's integer part can become.
+ *
+ * `intDigits` defaults to `digits`, so a base-10 alphabet produces self-headed
+ * keys like "50", "600" or "49". When `digits` is also omitted it falls back to
+ * BASE_52_DIGITS (A-Z/a-z), giving the classic "a0", "b00", "Z9" form. Note that
+ * passing `digits` explicitly (even BASE_62_DIGITS) makes the keys self-headed;
+ * only omitting `digits` entirely yields the A-Z/a-z heads.
  *
  * @example
- * // intDigits may reuse the digit alphabet itself. Here both are base-10, so
- * // keys contain no letters: the first half (0-4) are negative heads, the
- * // second half (5-9) positive heads, and 4/5 mark the shortest (length-2)
- * // integer parts.
- * generateKeyBetween(null, null, "0123456789", "0123456789"); // => "50"
+ * // base 10: heads come from `digits` itself. The first half (0-4) are negative
+ * // heads, the second half (5-9) positive heads, and 4/5 mark the shortest
+ * // (length-2) integer parts.
+ * generateKeyBetween(null, null, "0123456789"); // => "50"
  *
  * @param {string | null | undefined} a
  * @param {string | null | undefined} b
@@ -458,19 +435,27 @@ function validateIntDigits(intDigits) {
 export function generateKeyBetween(
   a,
   b,
-  digits = BASE_62_DIGITS,
+  digits = undefined,
   intDigits = undefined
 ) {
-  validateDigits(digits);
   if (intDigits !== undefined) {
     validateIntDigits(intDigits);
+  } else {
+    intDigits = digits ?? BASE_52_DIGITS;
   }
+  if (digits !== undefined) {
+    validateDigits(digits);
+  } else {
+    digits = BASE_62_DIGITS;
+  }
+
   const lookup = getDigitIndex(digits);
+  const intLookup = getDigitIndex(intDigits);
   if (a != null) {
-    validateOrderKey(a, digits, intDigits);
+    validateOrderKey(a, digits, intDigits, intLookup);
   }
   if (b != null) {
-    validateOrderKey(b, digits, intDigits);
+    validateOrderKey(b, digits, intDigits, intLookup);
   }
   if (a != null && b != null) {
     // swap if out of order, so that a < b.  this is just a convenience for
@@ -484,14 +469,13 @@ export function generateKeyBetween(
 
   if (a == null) {
     if (b == null) {
-      // the shortest positive head: "a" by default, else the first character of
-      // the second half of intDigits.
-      const head =
-        intDigits === undefined ? "a" : intDigits[intDigits.length / 2];
+      // the shortest positive head: the first character of the second half of
+      // intDigits ("a" for the default A-Z/a-z markers).
+      const head = intDigits[intDigits.length / 2];
       return head + digits[0];
     }
 
-    const ib = getIntegerPart(b, intDigits);
+    const ib = getIntegerPart(b, intDigits, intLookup);
     const fb = b.slice(ib.length);
     if (isSmallestInteger(ib, digits, intDigits)) {
       return ib + midpoint("", fb, digits, lookup);
@@ -499,7 +483,7 @@ export function generateKeyBetween(
     if (ib < b) {
       return ib;
     }
-    const res = decrementInteger(ib, digits, lookup, intDigits);
+    const res = decrementInteger(ib, digits, lookup, intDigits, intLookup);
     if (res == null) {
       throw new Error("cannot decrement any more");
     }
@@ -507,20 +491,20 @@ export function generateKeyBetween(
   }
 
   if (b == null) {
-    const ia = getIntegerPart(a, intDigits);
+    const ia = getIntegerPart(a, intDigits, intLookup);
     const fa = a.slice(ia.length);
-    const i = incrementInteger(ia, digits, lookup, intDigits);
+    const i = incrementInteger(ia, digits, lookup, intDigits, intLookup);
     return i == null ? ia + midpoint(fa, null, digits, lookup) : i;
   }
 
-  const ia = getIntegerPart(a, intDigits);
+  const ia = getIntegerPart(a, intDigits, intLookup);
   const fa = a.slice(ia.length);
-  const ib = getIntegerPart(b, intDigits);
+  const ib = getIntegerPart(b, intDigits, intLookup);
   const fb = b.slice(ib.length);
   if (ia === ib) {
     return ia + midpoint(fa, fb, digits, lookup);
   }
-  const i = incrementInteger(ia, digits, lookup, intDigits);
+  const i = incrementInteger(ia, digits, lookup, intDigits, intLookup);
   if (i == null) {
     throw new Error("cannot increment any more");
   }
@@ -541,21 +525,28 @@ export function generateKeyBetween(
  * @param {string | null | undefined} a
  * @param {string | null | undefined} b
  * @param {number} n
- * @param {string} digits
- * @param {string | undefined} intDigits
+ * @param {string=} digits
+ * @param {string=} intDigits
  * @return {string[]}
  */
 export function generateNKeysBetween(
   a,
   b,
   n,
-  digits = BASE_62_DIGITS,
+  digits = undefined,
   intDigits = undefined
 ) {
-  validateDigits(digits);
   if (intDigits !== undefined) {
     validateIntDigits(intDigits);
+  } else {
+    intDigits = digits ?? BASE_52_DIGITS;
   }
+  if (digits !== undefined) {
+    validateDigits(digits);
+  } else {
+    digits = BASE_62_DIGITS;
+  }
+
   if (n === 0) {
     return [];
   }

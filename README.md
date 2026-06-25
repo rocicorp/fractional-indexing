@@ -18,7 +18,8 @@ Generate a single key in between two points.
 generateKeyBetween(
   a: string | null | undefined, // start
   b: string | null | undefined, // end
-  digits?: string | undefined = BASE_62_DIGITS, // optional character encoding
+  digits?: string, // digit alphabet, defaults to BASE_62_DIGITS (0-9A-Za-z)
+  intDigits?: string, // integer-head alphabet, defaults to `digits`
 ): string;
 ```
 
@@ -48,8 +49,9 @@ Use this when generating multiple keys at some known position, as it spaces out 
 generateNKeysBetween(
   a: string | null | undefined, // start
   b: string | null | undefined, // end
-  n: number // number of keys to generate evenly between start and end
-  digits?: string | undefined = BASE_62_DIGITS, // optional character encoding
+  n: number, // number of keys to generate evenly between start and end
+  digits?: string, // digit alphabet, defaults to BASE_62_DIGITS (0-9A-Za-z)
+  intDigits?: string, // integer-head alphabet, defaults to `digits`
 ): string[];
 ```
 
@@ -78,10 +80,10 @@ base&nbsp;10:
 ```js
 import { generateNKeysBetween } from "fractional-indexing";
 
-generateNKeysBetween(null, null, 4, "0123456789"); // ["a0", "a1", "a2", "a3"]
+generateNKeysBetween(null, null, 4, "0123456789"); // ["50", "51", "52", "53"]
 ```
 
-There are two important rules and one thing that surprises people:
+`digits` must obey two rules:
 
 1. **`digits` must be single-byte and sorted in ascending character-code
    order**, with no duplicates. Every character must have a char code in the
@@ -94,16 +96,39 @@ There are two important rules and one thing that surprises people:
    (symbols, Latin-1, etc.) work fine as long as they are sorted by character
    code. Multi-byte alphabets (e.g. Greek) are rejected.
 
-3. **Generated keys always contain Latin head characters (`a`-`z` and `A`-`Z`)
-   regardless of `digits`.** The integer part of every key begins with a
-   magnitude/length marker drawn from a fixed Latin alphabet (`a`-`z` for
-   positive lengths, `A`-`Z` for negative), independent of `digits`. So a base-10
-   key looks like `"a0"`, `"b00"`, or `"Z9"` — the leading letter is _not_ one of
-   your digits. This is part of the order-key format (matching the reference
-   implementation) and is required for keys to sort correctly; it is not a digit
-   value. The marker only ever occupies the first position and is only compared
-   against other markers, which is why custom alphabets that don't contain these
-   letters still sort correctly.
+### Integer heads and `intDigits`
+
+The integer part of every key begins with a magnitude/length marker — a
+**head** — drawn from the `intDigits` alphabet. `intDigits` is split in half:
+the first half are the negative-length heads and the second half the
+positive-length heads, so it must have an **even length**. The head only ever
+occupies the first position and is only compared against other heads, which is
+why `digits` and `intDigits` may overlap (or be identical) and keys still sort
+correctly.
+
+`intDigits` **defaults to `digits`**, so a custom alphabet is _self-headed_: a
+base-10 key looks like `"50"`, `"600"`, or `"49"`, with no Latin letters.
+
+When you omit `digits` entirely, `intDigits` falls back to `BASE_52_DIGITS`
+(`A-Z` for negative lengths, `a-z` for positive), so the default keys look like
+`"a0"`, `"b00"`, or `"Z9"` — the classic format, byte-compatible with the other
+implementations listed below. Note that passing `digits` _explicitly_ (even
+`BASE_62_DIGITS`) makes the keys self-headed; only omitting `digits` yields the
+`A-Z`/`a-z` heads.
+
+To use a custom `digits` but keep the classic Latin heads — or to use an
+**odd-length** `digits`, which can't supply its own even head alphabet — pass
+`intDigits` explicitly:
+
+```js
+import { generateNKeysBetween, BASE_52_DIGITS } from "fractional-indexing";
+
+// self-headed (intDigits defaults to digits):
+generateNKeysBetween(null, null, 4, "0123456789"); // ["50", "51", "52", "53"]
+
+// Latin heads (intDigits set explicitly):
+generateNKeysBetween(null, null, 4, "0123456789", BASE_52_DIGITS); // ["a0", "a1", "a2", "a3"]
+```
 
 ## Sorting
 

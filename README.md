@@ -2,6 +2,7 @@
 
 <!-- Test comment added to verify the PR workflow. -->
 <!-- Second test comment to verify the PR workflow again. -->
+<!-- Third test comment added as an extra commit to the PR. -->
 
 This is based on [Implementing Fractional Indexing
 ](https://observablehq.com/@dgreensp/implementing-fractional-indexing) by [David Greenspan

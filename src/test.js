@@ -353,6 +353,29 @@ testNDigits(
   "digits must be at least 2 characters in strictly ascending character code order: 0"
 );
 
+// A negative `n` must throw, not silently return a single key (one bound
+// null) or recurse without bound (both bounds set).
+/**
+ * @param {string | null} a
+ * @param {string | null} b
+ */
+function testNegativeN(a, b) {
+  /** @type {string} */
+  let act;
+  try {
+    act = generateNKeysBetween(a, b, -1).join(" ");
+  } catch (e) {
+    act = e.message;
+  }
+
+  console.assert("n must be >= 0: -1" == act, `n must be >= 0: -1 == ${act}`);
+}
+
+testNegativeN(null, null);
+testNegativeN("a0", null);
+testNegativeN(null, "a1");
+testNegativeN("a0", "a5");
+
 testOrdering("0123456789");
 testOrdering(" !#$%&");
 testOrdering("¡¢£¤¥¦");

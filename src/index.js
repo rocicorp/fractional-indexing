@@ -516,7 +516,7 @@ export function generateKeyBetween(
 
 /**
  * same preconditions as generateKeysBetween.
- * n >= 0.
+ * n must be >= 0 (throws otherwise).
  * Returns an array of n distinct keys in sorted order.
  * If a and b are both null, returns [a0, a1, ...]
  * If one or the other is null, returns consecutive "integer"
@@ -547,6 +547,11 @@ export function generateNKeysBetween(
     digits = BASE_62_DIGITS;
   }
 
+  if (n < 0) {
+    // Without this guard a negative n silently returns a single key when one
+    // bound is null, and recurses without bound when both are set.
+    throw new Error("n must be >= 0: " + n);
+  }
   if (n === 0) {
     return [];
   }
